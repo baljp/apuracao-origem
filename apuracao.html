@@ -1108,7 +1108,7 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
       <div class="oqueE"><b>Oficial TSE</b> é o que já foi contado.
         <b>Projeção</b> é onde a conta deve terminar, porque cada região
         apura num ritmo diferente.</div>
-      <button class="bt-compartilhar" id="btCompartilhar">Compartilhar o placar</button>
+      <button class="bt-compartilhar" id="btCompartilhar">Compartilhar o placar no Instagram / WhatsApp</button>
     </div>
   </div>
 
@@ -2733,7 +2733,7 @@ const DEMO = (() => {
  */
 /* 1º turno por UF: [abstenção, comparecimento, brancos+nulos] (TSE, eleição 6257). */
 const T1_UF = {"ac":[125412,488330,19264],"al":[503698,1938428,119572],"am":[564062,2234549,63786],"ap":[100426,476562,11704],"ba":[2259151,9053601,493310],"ce":[1086074,5910471,292657],"df":[426924,1831396,58588],"es":[639368,2352282,101204],"go":[1109003,3971587,143764],"ma":[1022772,4160343,149904],"mg":[3735098,12637274,661039],"ms":[483210,1541220,50942],"mt":[585668,2052133,58845],"pa":[1195893,5066504,203332],"pb":[564543,2683988,170241],"pe":[1312388,5911062,310045],"pi":[463875,2240883,94489],"pr":[1772200,6841457,256214],"rj":[2997846,9859802,490102],"rn":[488812,2171013,99115],"ro":[274813,991080,23021],"rr":[68749,332772,7227],"rs":[1819642,6702903,279857],"sc":[1086492,4648159,147262],"se":[301053,1439082,74886],"sp":[7690900,26431992,1549044],"to":[216827,965196,34749],"zz":[574345,341766,10884]};
-let ultimoComp = null, ultimoT1 = null, ultimoTotais = null, ultimoBrasil = null;
+let ultimoComp = null, ultimoT1 = null, ultimoTotais = null, ultimoBrasil = null, ultimaHoraTSE = "";
 const T1_BR = Object.values(T1_UF).reduce((a, x) => [a[0] + x[0], a[1] + x[1], a[2] + x[2]], [0, 0, 0]);
 /* Total nacional do TSE (o que o aplicativo mostra), quando está à frente da
  * soma dos estados. */
@@ -2948,6 +2948,7 @@ async function tick() {
     const { observado, fracoes, nomes: nms, falhas, totais, horaTSE,
             dispersao, brasil } = await tse.lerTudo(TURNO);
     ultimoBrasil = brasil || null;
+    ultimaHoraTSE = (brasil && brasil.hora) || horaTSE || "";
     if (nms && nms.pl) {
       nomes = { pl: titulo(nms.pl), pt: titulo(nms.pt) };
       $("nomePL").textContent = nomes.pl;
@@ -3468,19 +3469,20 @@ $("stFechar").addEventListener("click", () => { $("stories").hidden = true; });
 
 /* Compartilhar o placar: usa o compartilhamento do celular quando existe, e
  * copia o texto quando não. */
-$("btCompartilhar").addEventListener("click", async () => {
+$("btCompartilhar").addEventListener("click", () => {
+  // Abre o card do momento (imagem para Stories + texto para o WhatsApp),
+  // com o placar nacional do TSE e a projeção — o mesmo que os cards
+  // automáticos, mas na hora que a pessoa quiser.
   const r = ultimoR;
-  if (!r || !(r.pctApurado > 0.05)) return;
-  const nPl = nomes.pl.split(" ")[0], nPt = nomes.pt.split(" ")[0];
-  const txt = `Apuração 2026 · ${n1(r.pctApurado)}% apurado\n`
-    + `Oficial TSE: ${nPl} ${n1(r.brutoPl)}% × ${nPt} ${n1(100 - r.brutoPl)}%\n`
-    + `Projeção: ${nPl} ${n1(r.projecaoPl)}% × ${nPt} ${n1(r.projecaoPt)}%\n`
-    + `(resultado oficial é o do TSE)`;
-  const url = "https://oxeeraassim.github.io/apuracao/";
-  if (navigator.share) {
-    try { await navigator.share({ text: txt, url }); return; } catch { return; }
-  }
-  copiarTexto(txt + "\n" + url, $("btCompartilhar"));
+  if (!r) return;
+  const BR = brasilAFrente(r);
+  let vPl = 0, vPt = 0;
+  for (const e of r.estados || []) { vPl += e.vPl || 0; vPt += e.vPt || 0; }
+  const c = fotoDoMomento(r, ultimaHoraTSE || "", vPl, vPt, "marco", 0);
+  if (BR) { c.of = +(100 * BR.pl / (BR.pl + BR.pt)).toFixed(2); c.pct = +BR.pst.toFixed(2); }
+  if (c.of == null) return;
+  c.k = c.pct >= 99.95 ? 100 : n1(c.pct);
+  abrirCard(c);
 });
 
 /* ---- cards para stories --------------------------------------------------
@@ -3816,13 +3818,14 @@ function cardMarco(ctx, c) {
   // chance de vencer, em destaque
   {
     const margem = c.lo != null && c.lo < 50 && c.hi > 50;
-    const t = c.ch == null ? "" : margem ? "Dentro da margem de erro: ainda não dá para dizer quem ganha"
+    const t = c.ch == null ? "" : c.pct < 1 ? "Abaixo de 1% apurado: projeção ainda instável"
+      : margem ? "Dentro da margem de erro: ainda não dá para dizer quem ganha"
       : (c.ch >= 0.5 ? nomes.pl : nomes.pt).split(" ")[0] + ": chance de vencer em "
         + Math.min(99, Math.max(50, Math.round(100 * Math.max(c.ch, 1 - c.ch)))) + "%";
     if (t) {
       rr(ctx, 70, 1252, CW - 140, 64, 32); ctx.fillStyle = "rgba(242,181,68,.16)"; ctx.fill();
       ctx.lineWidth = 2.5; ctx.strokeStyle = "rgba(242,181,68,.75)"; ctx.stroke();
-      txCabe(ctx, t, CW / 2, 1296, margem ? 28 : 36, 900, OURO, CW - 180, "center");
+      txCabe(ctx, t, CW / 2, 1296, (margem || c.pct < 1) ? 30 : 36, 900, OURO, CW - 180, "center");
     }
   }
   // 1º turno no mesmo momento, abstenção e brancos+nulos: uma linha discreta
@@ -4425,7 +4428,8 @@ function textoCard(def) {
     return l.length ? "\n" + l.join("\n") : "";
   };
   if (def.tipo === "marco" || def.tipo === "virada") {
-    const ch = def.ch == null || (def.lo < 50 && def.hi > 50) ? "" : `\n🎯 Chance de vencer: ${(def.ch >= 0.5 ? nPl : nPt)} ${Math.min(99, Math.round(100 * Math.max(def.ch, 1 - def.ch)))}%`;
+    const ch = def.pct < 1 ? "\n⚠️ Abaixo de 1% apurado a projeção ainda é instável"
+      : def.ch == null || (def.lo < 50 && def.hi > 50) ? "" : `\n🎯 Chance de vencer: ${(def.ch >= 0.5 ? nPl : nPt)} ${Math.min(99, Math.round(100 * Math.max(def.ch, 1 - def.ch)))}%`;
     return `🗳️ Apuração 2º turno · ${n1(def.pct)}% das urnas apuradas`
       + `\n✅ Apurado no TSE: ${nPl} ${n1(def.of)}% × ${nPt} ${n1(100 - def.of)}%`
       + `\n★ Projeção do algoritmo: ${nPl} ${n1(def.pr)}% × ${nPt} ${n1(100 - def.pr)}%` + ch
