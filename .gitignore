@@ -18,3 +18,4 @@ previa-mapa-*.svg
 # Dados do TSE baixados para os testes de resiliencia.
 # Sao 5 MB que o proprio TSE serve; programa/baixar_mock.sh refaz em segundos.
 programa/mock_1t/
+programa/_*.mjs
