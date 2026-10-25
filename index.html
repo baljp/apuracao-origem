@@ -1826,6 +1826,24 @@ function agendarProximo() {
   }, espera);
 }
 
+function alinharFracoes(fracoes, totais) {
+  const porUf = totais && totais.porUf; if (!porUf || !(fracoes instanceof Map)) return;
+  const acc = new Map();
+  for (let i = 0; i < modelo.n; i++) {
+    const u = modelo.uf[i], f = fracoes.get(modelo.chave[i]) || 0;
+    const a = acc.get(u) || [0, 0]; a[0] += f * modelo.eleitorado[i]; a[1] += modelo.eleitorado[i]; acc.set(u, a);
+  }
+  for (const [u, [fe, e]] of acc) {
+    const x = porUf[u]; if (!x || !(x[4] > 0) || !(e > 0)) continue;
+    const and = 100 * fe / e, sec = 100 * x[3] / x[4];
+    if (!(and > 0)) continue;
+    if (and - sec > 0.5 && sec / and < 0.7) {
+      const k = sec / and;
+      for (const [ch, f] of fracoes) if (ch.startsWith(u + "/")) fracoes.set(ch, f * k);
+    }
+  }
+}
+
 async function tick() {
   if (DEMO !== null) return tickDemo();
   // Aba em segundo plano não precisa de número novo: ninguém está vendo.
@@ -1843,6 +1861,13 @@ async function tick() {
       $("nomePL").textContent = nomes.pl;
       $("nomePT").textContent = nomes.pt;
     }
+    // Refinamento com a apuração andando: em alguns estados o TSE publica o
+    // andamento (quais urnas já foram totalizadas) antes dos votos dessas
+    // urnas — hoje, no Amazonas, o andamento dizia 18,6% e os votos eram de
+    // 1,9% das seções. Comparar votos de 2% com o 1º turno de 19% distorce a
+    // mudança medida naquele estado. Quando os dois descasam muito, as frações
+    // do estado são reduzidas na proporção dos votos que de fato chegaram.
+    try { alinharFracoes(fracoes, totais); } catch {}
     const r = modelo.projetar(fracoes, observado, 240);
     // O "% apurado" de cada estado que aparece na tela é o do TSE (seções
     // totalizadas sobre o total), não a fração de eleitorado do modelo.
@@ -3867,7 +3892,7 @@ async function carregarExterior(forcar) {
       // boletins continuam valendo onde estão à frente (sem somar os dois).
       const real = DEMO === null && TURNO === tse.ELEICAO_2T;
       const faltaTSE = real && [...ext.cidades.values()].some((c) => c.fonte !== "tse" && c.bu);
-      if (real && (forcar || Date.now() - bu.ultima > 20000)
+      if (real && (forcar || Date.now() - bu.ultima > 120000)
           && [...ext.cidades.values()].some((c) => !(c.of && c.of.st >= (c.ts || 1)))) {
         await lerBoletinsExterior();
       }
@@ -3876,12 +3901,12 @@ async function carregarExterior(forcar) {
         + (faltaTSE ? " Nas cidades em que o TSE ainda não chegou, valem os boletins de urna já "
           + "publicados — nunca os dois somados." : "")
         + (DEMO !== null ? " (Ensaio: números do 1º turno.)" : "");
-    } else if (forcar || Date.now() - bu.ultima > 20000) {
+    } else if (forcar || Date.now() - bu.ultima > 120000) {
       await lerBoletinsExterior();
       $("extNota").innerHTML = "<strong>Parcial, pelos boletins de urna</strong> que o TSE já "
         + "publicou das seções do exterior que fecharam — é de onde saem os primeiros "
         + "números da imprensa. <strong>Não é a totalização oficial</strong>, que começa às "
-        + "17h de Brasília. Novos boletins entram sozinhos, em tempo real (a cada ~20 s).";
+        + "17h de Brasília. Novos boletins entram sozinhos.";
     }
   } catch {
     $("extNota").textContent = "Não consegui ler o exterior no TSE agora. Tentando de novo em seguida.";
@@ -5716,7 +5741,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=b7650f0f7f").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=3dcfea1ac8").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
