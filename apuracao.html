@@ -2802,6 +2802,8 @@ const TURNO = new URLSearchParams(location.search).get("turno") === "1"
 
 const $ = (id) => document.getElementById(id);
 const n1 = (v) => (v == null || isNaN(v)) ? "—" : v.toFixed(1).replace(".", ",");
+/* Porcentagem apurada com duas casas, como o TSE publica (0,25%, e não 0,3%). */
+const n2 = (v) => (v == null || isNaN(v)) ? "—" : v.toFixed(2).replace(".", ",");
 // Duas casas, para os números que o site calcula (média, margem, erro): ali a
 // diferença entre 50,4 e 50,44 pode ser a diferença entre parecer empate e
 // parecer vantagem.
@@ -3066,11 +3068,11 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
   if (DEMO === null) atualizarFaixa(r, comecou);
   $("vazio").style.display = comecou ? "none" : "block";
   $("placar").style.display = comecou ? "block" : "none";
-  $("apurado").textContent = n1(pctApu) + "%";
+  $("apurado").textContent = n2(pctApu) + "%";
   $("barraApurado").style.width = Math.min(pctApu, 100) + "%";
   $("barraApurado").parentElement.nextElementSibling.textContent =
     pctApu >= 99.95 ? "das urnas do país"
-      : "faltam " + n1(100 - pctApu) + "%";
+      : "faltam " + n2(100 - pctApu) + "%";
   if (!comecou) { desenhaMapa(null).catch(() => {}); return; }
 
   contar($("pctPL"), r.projecaoPl);
@@ -3118,7 +3120,7 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
     $("tseAgPL").textContent = n1(bp) + "%";
     $("tseAgPT").textContent = n1(100 - bp) + "%";
     $("tseAgNPL").textContent = curtoPl; $("tseAgNPT").textContent = curtoPt;
-    $("tseAgApu").textContent = n1(BR.pst) + "% das urnas";
+    $("tseAgApu").textContent = n2(BR.pst) + "% das urnas";
     $("tseAgBPL").style.cssText = "width:" + bp + "%;background:var(--pl-vivo)";
     $("tseAgBPT").style.cssText = "width:" + (100 - bp) + "%;background:var(--pt-vivo)";
     const fr = BR.pl + BR.pt ? 100 * (r.votosApurados || 0) / (BR.pl + BR.pt) : 0;
@@ -3128,7 +3130,7 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
     $("tseAgPL").textContent = n1(r.brutoPl) + "%";
     $("tseAgPT").textContent = n1(100 - r.brutoPl) + "%";
     $("tseAgNPL").textContent = curtoPl; $("tseAgNPT").textContent = curtoPt;
-    $("tseAgApu").textContent = n1(r.pctApurado) + "% das urnas";
+    $("tseAgApu").textContent = n2(r.pctApurado) + "% das urnas";
     $("tseAgBPL").style.cssText = "width:" + r.brutoPl + "%;background:var(--pl-vivo)";
     $("tseAgBPT").style.cssText = "width:" + (100 - r.brutoPl) + "%;background:var(--pt-vivo)";
   }
@@ -3480,7 +3482,7 @@ $("btCompartilhar").addEventListener("click", () => {
   const c = fotoDoMomento(r, ultimaHoraTSE || "", vPl, vPt, "marco", 0);
   if (BR) { c.of = +(100 * BR.pl / (BR.pl + BR.pt)).toFixed(2); c.pct = +BR.pst.toFixed(2); }
   if (c.of == null) return;
-  c.k = c.pct >= 99.95 ? 100 : n1(c.pct);
+  c.k = c.pct >= 99.995 ? 100 : n2(c.pct);
   abrirCard(c);
 });
 
@@ -4429,7 +4431,7 @@ function textoCard(def) {
   if (def.tipo === "marco" || def.tipo === "virada") {
     const ch = def.pct < 1 ? "\n⚠️ Abaixo de 1% apurado a projeção ainda é instável"
       : def.ch == null || (def.lo < 50 && def.hi > 50) ? "" : `\n🎯 Chance de vencer: ${(def.ch >= 0.5 ? nPl : nPt)} ${Math.min(99, Math.round(100 * Math.max(def.ch, 1 - def.ch)))}%`;
-    return `🗳️ Apuração 2º turno · ${n1(def.pct)}% das urnas apuradas`
+    return `🗳️ Apuração 2º turno · ${n2(def.pct)}% das urnas apuradas`
       + `\n✅ Apurado no TSE: ${nPl} ${n1(def.of)}% × ${nPt} ${n1(100 - def.of)}%`
       + `\n★ Projeção do algoritmo: ${nPl} ${n1(def.pr)}% × ${nPt} ${n1(100 - def.pr)}%` + ch
       + extra(Object.assign({ t1: def.t1 }, def.comp || {})) + fim;
@@ -6459,7 +6461,7 @@ function atualizarFaixa(r, comecou) {
   faixa.className = "status vivo";
   $("statusTitulo").textContent = "Ao vivo · apuração oficial do TSE";
   $("statusTexto").innerHTML =
-    "<strong>" + n1(brasilAFrente(r) ? brasilAFrente(r).pst : r.pctApurado) + "% apurado.</strong> Votos oficiais do TSE, "
+    "<strong>" + n2(brasilAFrente(r) ? brasilAFrente(r).pst : r.pctApurado) + "% apurado.</strong> Votos oficiais do TSE, "
     + "com a projeção de onde a conta deve terminar.";
 }
 
