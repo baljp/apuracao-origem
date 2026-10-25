@@ -796,6 +796,16 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 .ext .v small{display:block;font-size:11px;color:var(--fraco);font-weight:750}
 .ext .mini{grid-column:1 / -1;height:7px;border-radius:999px;overflow:hidden;display:flex;gap:2px;background:var(--linha)}
 .ext .mini i{display:block;height:100%}
+.cmp{grid-column:1 / -1;display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.ch{display:inline-flex;align-items:baseline;gap:5px;font-size:12.5px;font-weight:800;
+  padding:4px 9px;border-radius:999px;border:1px solid var(--linha)}
+.ch.pl{background:color-mix(in srgb,var(--pl) 9%,var(--superficie));color:var(--pl)}
+.ch.pt{background:color-mix(in srgb,var(--pt) 9%,var(--superficie));color:var(--pt)}
+.ch b{font-weight:900}
+.ch em{font-style:normal;color:var(--fraco);font-weight:700;font-size:11.5px}
+.cmp-tot{background:var(--superficie-2);border:1px solid var(--linha);border-radius:14px;
+  padding:10px 12px;font-size:13.5px;font-weight:700}
+.cmp-tot .cmp{margin-top:7px}
 </style>
 </head>
 <body>
@@ -3064,12 +3074,12 @@ async function carregarExterior(forcar) {
       $("extNota").innerHTML = "<strong>Totalização oficial do TSE.</strong> Atualiza sozinho a "
         + "cada 25 segundos enquanto esta seção estiver aberta."
         + (DEMO !== null ? " (Ensaio: números do 1º turno.)" : "");
-    } else if (forcar || Date.now() - bu.ultima > 110000) {
+    } else if (forcar || Date.now() - bu.ultima > 55000) {
       await lerBoletinsExterior();
       $("extNota").innerHTML = "<strong>Parcial, pelos boletins de urna</strong> que o TSE já "
         + "publicou das seções do exterior que fecharam — é de onde saem os primeiros "
         + "números da imprensa. <strong>Não é a totalização oficial</strong>, que começa às "
-        + "17h de Brasília. Novos boletins entram sozinhos a cada 2 minutos.";
+        + "17h de Brasília. Novos boletins entram sozinhos a cada minuto.";
     }
   } catch {
     $("extNota").textContent = "Não consegui ler o exterior no TSE agora. Tentando de novo em seguida.";
@@ -3078,27 +3088,60 @@ async function carregarExterior(forcar) {
   pintaExterior();
 }
 
+/* 1º turno no exterior, cidade a cidade: [votos de Flávio, votos de Lula,
+ * votos válidos], da totalização oficial do TSE (eleição 6257). Fica embutido
+ * para não baixar 186 arquivos só para comparar. */
+const EXT_1T = {"29254":[13,24,44],"29262":[659,512,1355],"99198":[0,0,0],"29270":[2,8,13],"99325":[0,0,0],"30457":[1081,4624,6274],"29289":[59,675,783],"29297":[7,24,37],"29300":[3,27,31],"29319":[227,104,367],"29327":[740,250,1061],"39241":[0,0,0],"29335":[230,196,494],"39080":[3276,1221,4903],"99171":[0,0,0],"39128":[0,0,0],"99350":[0,0,0],"29343":[51,40,99],"29351":[995,3692,5043],"99473":[27,17,47],"29360":[1138,2538,3883],"29378":[13,30,48],"38881":[0,0,0],"29386":[925,6504,8019],"29394":[17,17,37],"29408":[252,245,527],"29416":[11228,3919,16092],"39209":[13,35,58],"39187":[0,0,0],"29424":[0,0,0],"29432":[1959,2516,4975],"29440":[22,31,62],"29459":[93,331,464],"29467":[1449,3507,5309],"29475":[518,484,1084],"29483":[12,46,64],"29491":[805,1478,2593],"30651":[35,48,92],"29505":[125,128,262],"99384":[0,0,0],"29513":[953,1485,2694],"29521":[0,0,0],"29530":[58,90,160],"29556":[2239,202,2503],"29564":[0,0,0],"99210":[0,0,0],"29572":[119,57,185],"30929":[0,0,0],"38903":[0,0,0],"29580":[32,2,35],"29599":[195,1166,1476],"38920":[0,0,0],"29602":[159,182,367],"29610":[24,51,79],"29629":[0,0,0],"29637":[7,97,108],"38962":[5,11,16],"29653":[173,147,357],"29661":[1559,6025,8299],"29645":[27,16,46],"99503":[139,488,677],"29670":[122,14,141],"29688":[505,1770,2540],"30961":[1305,1097,2670],"29696":[1320,3657,5495],"30669":[0,0,0],"29700":[2226,2298,5063],"29718":[43,7,53],"98000":[67,33,118],"29742":[4698,884,6475],"29750":[14,13,29],"29769":[0,0,0],"30902":[1207,557,1895],"29777":[1,36,38],"29785":[155,475,693],"29793":[105,99,244],"29807":[2586,1265,4321],"29815":[0,0,0],"38989":[0,0,0],"29823":[0,0,0],"29831":[0,0,0],"39306":[30,90,127],"29840":[19,8,31],"29173":[11,1,13],"29858":[19,4,23],"99430":[14,4,19],"29874":[0,0,0],"29882":[12,54,73],"29890":[27,44,82],"29904":[106,98,224],"29912":[6,26,32],"29939":[0,0,0],"99341":[0,0,0],"29947":[380,248,730],"29955":[10548,14948,27936],"39160":[25,61,98],"29963":[0,0,0],"29971":[5227,8152,14472],"29980":[1994,2131,4492],"29998":[101,147,264],"99287":[0,0,0],"30066":[2343,3571,6554],"39263":[0,0,0],"30082":[33,26,62],"30074":[35,33,69],"30090":[113,89,214],"99511":[104,715,868],"39102":[20,12,36],"39004":[55,49,112],"30104":[589,585,1285],"30112":[8914,2260,12017],"30120":[2908,3593,7163],"30147":[465,686,1263],"30155":[1456,3823,5889],"30163":[25,49,81],"30171":[1,5,11],"30180":[1287,3364,5288],"30198":[11480,2022,15406],"30201":[17,26,46],"99180":[10,6,19],"39322":[20,24,57],"30210":[26,24,50],"30228":[4684,4570,9891],"99490":[6981,1332,8868],"30244":[198,592,884],"30252":[395,794,1361],"30260":[336,236,658],"30279":[366,121,540],"30287":[1654,8054,10341],"30295":[3,2,5],"30309":[219,59,295],"30317":[22,104,134],"30325":[10,4,19],"30341":[7559,10356,19728],"30333":[0,5,5],"30350":[70,279,397],"30368":[20,39,70],"30376":[172,62,259],"99155":[15,7,22],"99236":[0,0,0],"99295":[0,0,0],"30392":[171,130,328],"30406":[6,30,42],"30414":[46,1078,1157],"30422":[22,52,83],"30430":[9,7,21],"99244":[0,0,0],"30449":[1478,2555,4432],"99147":[0,0,0],"30465":[496,19,525],"30473":[1162,194,1428],"99279":[0,0,0],"30481":[809,928,1971],"30988":[0,0,0],"30538":[72,123,216],"29548":[92,190,348],"99333":[0,0,0],"30562":[1774,3084,5536],"30490":[106,65,188],"30503":[1323,2176,3782],"30511":[159,173,370],"30520":[48,23,77],"39225":[0,0,0],"30546":[8,34,47],"30570":[107,77,218],"99317":[19,142,190],"99104":[0,0,0],"30597":[11,14,25],"30600":[34,17,59],"30619":[523,92,704],"99139":[0,0,0],"30635":[3319,4670,8697],"30686":[0,2,2],"30708":[9,12,22],"30627":[8423,2328,12400],"39284":[0,0,0],"39063":[1873,3221,5711],"30740":[65,183,282],"30767":[311,979,1471],"30783":[1858,2419,4706],"30805":[64,234,332],"30821":[5,6,13],"30848":[41,116,181],"99376":[0,0,0],"39020":[17,29,48],"30864":[2299,2896,5790]};
+
 function pintaExterior() {
   const porPais = new Map();
-  let te = 0, ts = 0, st = 0, pl = 0, pt = 0, cidades = 0;
+  const compara = TURNO === tse.ELEICAO_2T && DEMO === null;
+  let te = 0, ts = 0, st = 0, pl = 0, pt = 0, t1pl = 0, t1pt = 0, t1v = 0;
   for (const [cd, c] of ext.cidades) {
     const nome = PAISES_EXTERIOR[cd] || "Outros";
-    const p = porPais.get(nome) || { nome, te: 0, ts: 0, st: 0, pl: 0, pt: 0, cidades: 0 };
+    const p = porPais.get(nome) || { nome, te: 0, ts: 0, st: 0, pl: 0, pt: 0, cidades: 0,
+      t1pl: 0, t1pt: 0, t1v: 0 };
     p.te += c.te || 0; p.ts += c.ts || 0; p.st += c.st || 0;
     p.pl += c.pl || 0; p.pt += c.pt || 0; p.cidades++;
+    // O 1º turno entra só das cidades que já têm voto no 2º: comparar o
+    // Japão de hoje com o exterior inteiro de outubro não diria nada.
+    const a = EXT_1T[cd];
+    if (a && (c.pl || 0) + (c.pt || 0) > 0) {
+      p.t1pl += a[0]; p.t1pt += a[1]; p.t1v += a[2];
+      t1pl += a[0]; t1pt += a[1]; t1v += a[2];
+    }
     porPais.set(nome, p);
-    te += c.te || 0; ts += c.ts || 0; st += c.st || 0; pl += c.pl || 0; pt += c.pt || 0; cidades++;
+    te += c.te || 0; ts += c.ts || 0; st += c.st || 0; pl += c.pl || 0; pt += c.pt || 0;
   }
   if (!porPais.size) return;
   const mil = (v) => Math.round(v).toLocaleString("pt-BR");
   const nPl = esc(nomes.pl.split(" ")[0]), nPt = esc(nomes.pt.split(" ")[0]);
+  // "+8,3 pontos" com seta: o quanto cada um tem a mais (ou a menos) que no
+  // 1º turno, em pontos percentuais dos votos válidos.
+  const delta = (agora, antes) => {
+    const d = agora - antes;
+    const seta = d > 0.05 ? "▲" : d < -0.05 ? "▼" : "=";
+    return `<b>${seta} ${d >= 0 ? "+" : "−"}${n1(Math.abs(d))}</b>`;
+  };
+  const chips = (vPl, vPt, a1, b1, v1) => {
+    const v = vPl + vPt;
+    if (!compara || !v || !v1) return "";
+    const ag = 100 * vPl / v, an = 100 * a1 / v1, bg = 100 * vPt / v, bn = 100 * b1 / v1;
+    return `<div class="cmp">`
+      + `<span class="ch pl">${nPl} ${delta(ag, an)} <em>1º turno: ${n1(an)}%</em></span>`
+      + `<span class="ch pt">${nPt} ${delta(bg, bn)} <em>1º turno: ${n1(bn)}%</em></span></div>`;
+  };
   const v = pl + pt;
   $("extConta").textContent = porPais.size + " países";
   $("extResumo").innerHTML = '<div class="ext-tot">'
     + `<div><b>${mil(te)}</b><span>eleitores no exterior</span></div>`
     + `<div><b>${ts ? n1(100 * st / ts) : "0,0"}%</b><span>${ext.modo === "bu" ? "das urnas com boletim publicado" : "das urnas apuradas"} (${mil(st)} de ${mil(ts)})</span></div>`
     + `<div><b>${v ? `<span style="color:var(--pl)">${n1(100 * pl / v)}</span> × <span style="color:var(--pt)">${n1(100 * pt / v)}</span>` : "—"}</b>`
-    + `<span>${nPl} × ${nPt} no exterior (válidos)</span></div></div>`;
+    + `<span>${nPl} × ${nPt} no exterior (válidos)</span></div></div>`
+    + (compara && v && t1v ? `<div class="cmp-tot">Em relação ao <b>1º turno</b>, nas mesmas cidades:`
+      + chips(pl, pt, t1pl, t1pt, t1v) + `<div class="faixa" style="margin-top:6px">No 1º turno havia `
+      + `outros candidatos; no 2º, os votos deles se dividem entre os dois — por isso os dois `
+      + `costumam subir. Os números são pontos percentuais dos votos válidos.</div></div>` : "");
   const lista = [...porPais.values()].sort((a, b) =>
     ((b.pl + b.pt > 0) - (a.pl + a.pt > 0)) || (b.te - a.te));
   const mostrar = ext.todos ? lista : lista.slice(0, 12);
@@ -3114,6 +3157,7 @@ function pintaExterior() {
           + `<small>${mil(p.pl)} × ${mil(p.pt)} votos</small>`}</div>`
       + (pp == null ? "" : `<div class="mini"><i style="width:${pp}%;background:var(--pl)"></i>`
         + `<i style="width:${100 - pp}%;background:var(--pt)"></i></div>`)
+      + chips(p.pl, p.pt, p.t1pl, p.t1pt, p.t1v)
       + `</div>`;
   }).join("");
   $("btExtTodos").hidden = lista.length <= 12;
@@ -3136,6 +3180,17 @@ $("btExtCarregar").addEventListener("click", () => {
   }
 });
 $("btExtTodos").addEventListener("click", () => { ext.todos = !ext.todos; pintaExterior(); });
+
+// Abre sozinho quando a pessoa rola até a seção — sem precisar tocar.
+if ("IntersectionObserver" in window) {
+  const obs = new IntersectionObserver((ents) => {
+    if (ents.some((e) => e.isIntersecting) && !ext.aberto) {
+      obs.disconnect();
+      $("btExtCarregar").click();
+    }
+  }, { rootMargin: "200px" });
+  obs.observe($("cartaoExterior"));
+}
 
 /* ---- estados, regiões, saldo, quanto falta ------------------------------ */
 let ordemEstados = "apurado";
@@ -4210,7 +4265,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=8e5f0b9bb8").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=75fc327d67").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
