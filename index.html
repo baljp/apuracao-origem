@@ -2934,8 +2934,8 @@ async function carregarExterior() {
       ? "A votação no exterior segue o horário de cada país, mas o TSE só "
         + "<strong>divulga resultados depois das 17h de Brasília</strong>, junto com "
         + "o Brasil. A partir daí, esta lista se atualiza sozinha."
-      : "Votos já contados em cada país. Atualiza sozinho a cada minuto e meio "
-        + "enquanto esta seção estiver aberta." + (DEMO !== null ? " (Ensaio: números do 1º turno.)" : "");
+      : "Votos já contados em cada país. Atualiza sozinho a cada 25 segundos, "
+        + "junto com o TSE, enquanto esta seção estiver aberta." + (DEMO !== null ? " (Ensaio: números do 1º turno.)" : "");
   } catch {
     $("extNota").textContent = "Não consegui ler o exterior no TSE agora. Tentando de novo em seguida.";
   }
@@ -2991,9 +2991,11 @@ $("btExtCarregar").addEventListener("click", () => {
   carregarExterior();
   // Enquanto a apuração corre, atualiza sozinho — só para quem abriu.
   if (!ext.timer && (DEMO === null)) {
+    // Mesmo ritmo do resto da página: o TSE republica a cada ~27 s, e o
+    // arquivo só vem inteiro quando mudou (o "no-cache" pergunta antes).
     ext.timer = setInterval(() => {
       if (!document.hidden && Date.now() >= FECHAMENTO_URNAS) carregarExterior();
-    }, 90000);
+    }, AO_VIVO);
   }
 });
 $("btExtTodos").addEventListener("click", () => { ext.todos = !ext.todos; pintaExterior(); });
@@ -4071,7 +4073,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=657a881821").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=ac287faccd").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
