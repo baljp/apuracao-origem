@@ -809,6 +809,23 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 .ext-vence{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .ext-vence span{font-size:12.5px;font-weight:850;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08)}
 .ext-lista{display:grid;gap:9px}
+.reg-intro{font-size:13px;color:var(--fraco);font-weight:650;line-height:1.45;margin:-4px 0 12px}
+.regiao .globo{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:26px;
+  background:linear-gradient(135deg,rgba(242,181,68,.22),rgba(242,181,68,.06));border:1px solid rgba(242,181,68,.4)}
+.regiao .p{font-size:16.5px}
+.st-pais.esp{background:rgba(120,120,120,.12);color:var(--fraco);border:1px solid rgba(120,120,120,.3)}
+.reg-paises{grid-column:1 / -1;margin-top:2px}
+.reg-paises summary{cursor:pointer;font-size:12.5px;font-weight:850;color:var(--texto);list-style:none;
+  display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;border:1px solid var(--borda,rgba(0,0,0,.14))}
+.reg-paises summary::-webkit-details-marker{display:none}
+.reg-paises[open] summary{margin-bottom:8px}
+.reg-pp{display:flex;flex-wrap:wrap;gap:6px}
+.reg-pp span{font-size:12px;font-weight:800;padding:4px 9px;border-radius:999px;background:rgba(127,127,127,.09);
+  display:inline-flex;gap:5px;align-items:center;white-space:nowrap}
+.reg-pp span.fin{background:rgba(16,185,129,.12);color:#047857}
+.reg-pp span.par{background:rgba(242,181,68,.16);color:#92400E}
+.reg-pp span.esp{opacity:.6}
+.reg-pp em{font-style:normal;font-weight:900}
 @media (min-width:760px){ .ext-lista{grid-template-columns:1fr 1fr} }
 .pais{display:grid;grid-template-columns:46px 1fr auto;gap:6px 12px;align-items:center;
   padding:12px 13px;border-radius:16px;background:var(--superficie-2);border:1px solid var(--linha)}
@@ -1142,6 +1159,17 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
     <button class="bt-ouro" id="btExtCarregar" style="margin-top:14px">Ver votos do exterior</button>
     <button class="bt-ouro" id="btExtCompartilhar" style="margin-top:14px" hidden>Compartilhar no Instagram / WhatsApp</button>
     <div class="faixa ext-nota" id="extNota"></div>
+  </div>
+
+  <div class="cartao" id="cartaoExtRegioes" hidden>
+    <div class="cab">
+      <div><span class="rotulo">Região a região</span><h2>O exterior por continente</h2></div>
+      <span class="pilula" id="extRegConta">—</span>
+    </div>
+    <p class="reg-intro">Quanto cada um tem em cada região do mundo, quanto mudou desde o 1º turno
+      (nas mesmas cidades) e se a região já terminou de contar. Toque em “ver países” para abrir.</p>
+    <div class="ext-lista" id="extRegioes"></div>
+    <button class="bt-ouro" id="btExtRegioes" style="margin-top:14px;width:100%">Compartilhar todas as regiões no Instagram / WhatsApp</button>
   </div>
 
   <div class="cartao" id="cartaoExtPaises" hidden>
@@ -3731,7 +3759,7 @@ function cardExterior(ctx, d) {
     rr(ctx, 70, y - 50, CW - 140, 64, 18); ctx.fillStyle = "rgba(251,248,241,.06)"; ctx.fill();
     tx(ctx, p.bandeira, 100, y - 2, 38, 400, "#fff");
     txCabe(ctx, p.nome, 160, y - 14, 30, 900, MARFIM, 330);
-    tx(ctx, p.fim ? "✓ FINALIZADO" : "◔ PARCIAL · EM ANDAMENTO", 160, y + 14, 19, 900,
+    tx(ctx, p.fim ? "✓ FINALIZADO" : "PARCIAL · EM ANDAMENTO", 160, y + 14, 19, 900,
       p.fim ? "#6EE7B7" : OURO, "left", 2);
     rr(ctx, 520, y - 26, 200, 12, 6); ctx.fillStyle = "rgba(251,248,241,.12)"; ctx.fill();
     ctx.save(); rr(ctx, 520, y - 26, 200, 12, 6); ctx.clip();
@@ -3746,21 +3774,130 @@ function cardExterior(ctx, d) {
     : "Parcial: boletins de urna publicados pelo TSE · não é a totalização");
 }
 
+/* Selo de situação: verde finalizado, dourado em andamento. */
+function seloSituacao(ctx, cx, y, st, grande, textos) {
+  const tt = textos || (grande ? ["✓ APURAÇÃO FINALIZADA", "EM ANDAMENTO", "AGUARDANDO"]
+    : ["✓ FINALIZADO", "EM ANDAMENTO", "AGUARDANDO"]);
+  const t = st === "fin" ? tt[0] : st === "par" ? tt[1] : tt[2];
+  const tam = grande ? 26 : 19;
+  const icone = st === "par" ? (grande ? 26 : 20) : 0;
+  const w = largura(ctx, t, tam, 900) + 2 * t.length + (grande ? 70 : 34) + icone;
+  const h = grande ? 46 : 32;
+  const x = cx + icone / 2;
+  rr(ctx, x - w / 2, y - h + (grande ? 10 : 8), w, h, h / 2);
+  ctx.fillStyle = st === "fin" ? "rgba(16,185,129,.22)" : st === "par" ? "rgba(242,181,68,.2)" : "rgba(251,248,241,.08)";
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = st === "fin" ? "rgba(110,231,183,.7)" : st === "par" ? "rgba(242,181,68,.7)" : "rgba(251,248,241,.3)";
+  ctx.stroke();
+  if (icone) {
+    // relógio de meia volta: "ainda contando"
+    const r = (grande ? 9 : 7), ix = x - w / 2 + (grande ? 32 : 18) + r - icone / 2, iy = y - tam * 0.36;
+    ctx.beginPath(); ctx.arc(ix, iy, r, 0, 7); ctx.lineWidth = 2.5; ctx.strokeStyle = OURO; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ix, iy); ctx.arc(ix, iy, r, -Math.PI / 2, Math.PI / 2); ctx.closePath();
+    ctx.fillStyle = OURO; ctx.fill();
+  }
+  tx(ctx, t, x + icone / 2, y, tam, 900, st === "fin" ? "#6EE7B7" : st === "par" ? OURO : "rgba(251,248,241,.6)", "center", 2);
+  return w;
+}
+
+function cardRegiao(ctx, d) {
+  fundo(ctx, null, 340);
+  marca(ctx, "EXTERIOR · REGIÃO");
+  tx(ctx, d.globo, CW / 2, 330, 120, 400, "#fff", "center");
+  txCabe(ctx, d.nome, CW / 2, 450, 100, 700, MARFIM, CW - 140, "center", SLAB);
+  txCabe(ctx, d.sub, CW / 2, 510, 30, 800, "rgba(251,248,241,.72)", CW - 140, "center");
+  seloSituacao(ctx, CW / 2, 572, d.status, true);
+  blocoDuelo(ctx, 630, 370, d.oficial ? "BRASILEIROS NO EXTERIOR · TSE"
+    : d.status === "fin" ? "BOLETINS DE URNA · TODAS AS URNAS" : "PARCIAL · BOLETINS DE URNA", d.pPl, true, d.votos);
+  let y = 1050;
+  if (d.cmp) {
+    tx(ctx, "EM RELAÇÃO AO 1º TURNO · MESMAS CIDADES", CW / 2, y, 24, 900, OURO, "center", 4);
+    const caixa = (x, nome, cor, dd, antes) => {
+      rr(ctx, x, y + 20, 430, 104, 22); ctx.fillStyle = "rgba(251,248,241,.07)"; ctx.fill();
+      tx(ctx, nome, x + 28, y + 62, 28, 900, cor);
+      tx(ctx, "era " + n1(antes) + "%", x + 402, y + 62, 24, 800, "rgba(251,248,241,.6)", "right");
+      tx(ctx, (dd >= 0 ? "▲ +" : "▼ −") + n1(Math.abs(dd)) + " pontos", x + 28, y + 108, 40, 900, dd >= 0 ? "#6EE7B7" : "#FCA5A5");
+    };
+    caixa(80, nomes.pl.split(" ")[0], "#A9CAFF", d.cmp[0], d.cmp[1]);
+    caixa(570, nomes.pt.split(" ")[0], "#FFADA6", d.cmp[2], d.cmp[3]);
+    y += 172;
+  }
+  tx(ctx, "PAÍS A PAÍS", 100, y, 24, 900, OURO, "left", 5);
+  const caber = Math.max(1, Math.floor((CH - 290 - y) / 64));
+  const lista = d.paises.slice(0, d.paises.length > caber ? caber - 1 : caber);
+  for (const p of lista) {
+    y += 64;
+    rr(ctx, 70, y - 44, CW - 140, 56, 16); ctx.fillStyle = "rgba(251,248,241,.06)"; ctx.fill();
+    tx(ctx, p.bandeira, 96, y - 4, 32, 400, "#fff");
+    txCabe(ctx, p.nome, 146, y - 6, 28, 900, MARFIM, 300);
+    seloSituacao(ctx, 560, y - 4, p.st, false);
+    if (p.pPl != null) {
+      const lPl = p.pPl >= 50;
+      tx(ctx, (lPl ? nomes.pl : nomes.pt).split(" ")[0] + " " + n1(lPl ? p.pPl : 100 - p.pPl) + "%",
+        CW - 96, y - 6, 28, 900, lPl ? "#A9CAFF" : "#FFADA6", "right");
+    } else tx(ctx, "sem voto ainda", CW - 96, y - 6, 24, 800, "rgba(251,248,241,.5)", "right");
+  }
+  if (d.paises.length > lista.length) {
+    y += 52;
+    tx(ctx, "+ " + (d.paises.length - lista.length) + " países · veja todos no site", CW / 2, y, 24, 800,
+      "rgba(251,248,241,.6)", "center");
+  }
+  rodape(ctx, "Siga " + PERFIL, d.oficial ? "Totalização oficial do TSE"
+    : "Parcial: boletins de urna publicados pelo TSE · não é a totalização");
+}
+
+function cardRegioes(ctx, d) {
+  fundo(ctx, null, 300);
+  marca(ctx, "EXTERIOR");
+  tx(ctx, "O exterior", CW / 2, 290, 96, 700, MARFIM, "center", 0, SLAB);
+  tx(ctx, "por região", CW / 2, 380, 96, 700, gradTexto(ctx, 240, 840, "#FFF3D1", OURO), "center", 0, SLAB);
+  tx(ctx, d.sub, CW / 2, 438, 30, 800, OURO, "center");
+  const nPl = nomes.pl.split(" ")[0], nPt = nomes.pt.split(" ")[0];
+  const n = d.regioes.length;
+  const passo = Math.min(146, Math.floor((CH - 300 - 490) / n));
+  let y = 490;
+  for (const r of d.regioes) {
+    const h = passo - 12;
+    rr(ctx, 64, y, CW - 128, h, 22); ctx.fillStyle = "rgba(251,248,241,.07)"; ctx.fill();
+    const v = r.pl + r.pt, pPl = v ? 100 * r.pl / v : null;
+    tx(ctx, r.globo, 96, y + 46, 34, 400, "#fff");
+    txCabe(ctx, r.nome, 148, y + 44, 30, 900, MARFIM, 420);
+    seloSituacao(ctx, pPl != null ? 680 : CW - 170, y + 42, r.status, false);
+    if (pPl != null) {
+      const lPl = pPl >= 50;
+      tx(ctx, n1(lPl ? pPl : 100 - pPl) + "%", CW - 92, y + 46, 36, 900, lPl ? "#A9CAFF" : "#FFADA6", "right");
+      // barra
+      const bx = 96, bw = CW - 192, by = y + 66;
+      rr(ctx, bx, by, bw, 12, 6); ctx.fillStyle = "rgba(251,248,241,.12)"; ctx.fill();
+      ctx.save(); rr(ctx, bx, by, bw, 12, 6); ctx.clip();
+      ctx.fillStyle = AZUL; ctx.fillRect(bx, by, bw * pPl / 100 - 2, 12);
+      ctx.fillStyle = VERM; ctx.fillRect(bx + bw * pPl / 100 + 2, by, bw, 12);
+      ctx.restore();
+      const mil = (x) => Math.round(x).toLocaleString("pt-BR");
+      const seta = (dd) => dd == null ? "" : "  " + (dd >= 0 ? "▲+" : "▼−") + n1(Math.abs(dd));
+      tx(ctx, nPl + " " + n1(pPl) + "% · " + mil(r.pl) + seta(r.d), bx, by + 42, 23, 850, "#A9CAFF");
+      tx(ctx, mil(r.pt) + " · " + n1(100 - pPl) + "% " + nPt + seta(r.dPt), bx + bw, by + 42, 23, 850, "#FFADA6", "right");
+    } else {
+      tx(ctx, r.n + (r.n === 1 ? " país" : " países") + " · ainda sem voto contado", 148, y + 96, 23, 800,
+        "rgba(251,248,241,.5)");
+    }
+    y += passo;
+  }
+  tx(ctx, "▲▼ = mudança em pontos desde o 1º turno, nas mesmas cidades", CW / 2, y + 22, 21, 750,
+    "rgba(251,248,241,.55)", "center");
+  rodape(ctx, "Siga " + PERFIL, d.oficial ? "Totalização oficial do TSE"
+    : "Parcial: boletins de urna publicados pelo TSE · não é a totalização");
+}
+
 function cardPais(ctx, d) {
   fundo(ctx, null, 340);
   marca(ctx, "EXTERIOR");
   tx(ctx, d.bandeira, CW / 2, 330, 150, 400, "#fff", "center");
   txCabe(ctx, d.nome, CW / 2, 470, 120, 700, MARFIM, CW - 160, "center", SLAB);
   tx(ctx, d.sub, CW / 2, 530, 32, 800, "rgba(251,248,241,.72)", "center");
-  {
-    const t = d.fim ? "✓ APURAÇÃO FINALIZADA" : "◔ RESULTADO PARCIAL · EM ANDAMENTO";
-    ctx.font = "900 26px Nunito, ui-rounded, sans-serif";
-    const w = ctx.measureText(t).width + 2 * t.length + 70;
-    rr(ctx, CW / 2 - w / 2, 552, w, 46, 23);
-    ctx.fillStyle = d.fim ? "rgba(16,185,129,.22)" : "rgba(242,181,68,.2)"; ctx.fill();
-    ctx.lineWidth = 2; ctx.strokeStyle = d.fim ? "rgba(110,231,183,.7)" : "rgba(242,181,68,.7)"; ctx.stroke();
-    tx(ctx, t, CW / 2, 585, 26, 900, d.fim ? "#6EE7B7" : OURO, "center", 2);
-  }
+  seloSituacao(ctx, CW / 2, 585, d.fim ? "fin" : "par", true,
+    ["✓ APURAÇÃO FINALIZADA", "RESULTADO PARCIAL · EM ANDAMENTO", ""]);
   blocoDuelo(ctx, 650, 370, d.oficial ? "VOTOS DOS BRASILEIROS · TSE"
     : d.fim ? "BOLETINS DE URNA · TODAS AS URNAS" : "PARCIAL · BOLETINS DE URNA",
     d.pPl, true, d.votos);
@@ -3880,6 +4017,8 @@ async function desenharCard(def) {
   else if (def.tipo === "pesquisas") cardPesquisas(ctx, def);
   else if (def.tipo === "exterior") cardExterior(ctx, def);
   else if (def.tipo === "pais") cardPais(ctx, def);
+  else if (def.tipo === "regiao") cardRegiao(ctx, def);
+  else if (def.tipo === "regioes") cardRegioes(ctx, def);
   else if (def.tipo === "estado") cardEstado(ctx, def);
   return cv;
 }
@@ -3990,6 +4129,17 @@ function textoCard(def) {
   if (def.tipo === "estado" && def.e) {
     return `${def.nome}, ${n1(def.e.pctApurado)}% apurado · Oficial TSE: ${nPl} ${n1(def.e.obsPl)}% × `
       + `${nPt} ${n1(100 - def.e.obsPl)}% · Projeção: ${nPl} ${n1(def.e.projPl)}%. Ao vivo: https://${SITE}/ · ${PERFIL}`;
+  }
+  if (def.tipo === "regiao") {
+    return `${def.nome} (votos do exterior): ${nPl} ${n1(def.pPl)}% × ${nPt} ${n1(100 - def.pPl)}% · `
+      + `${def.status === "fin" ? "finalizado" : "em andamento"} (${def.oficial ? "TSE" : "boletins de urna"}). `
+      + `Ao vivo: https://${SITE}/ · ${PERFIL}`;
+  }
+  if (def.tipo === "regioes") {
+    return "O exterior por região: " + def.regioes.filter((r) => r.pl + r.pt).map((r) => {
+      const p = 100 * r.pl / (r.pl + r.pt);
+      return `${r.nome} ${p >= 50 ? nPl + " " + n1(p) : nPt + " " + n1(100 - p)}%${r.status === "fin" ? " ✓" : ""}`;
+    }).join(" · ") + `. Ao vivo: https://${SITE}/ · ${PERFIL}`;
   }
   if (def.tipo === "exterior" || def.tipo === "pais") {
     return `${def.tipo === "pais" ? def.nome : "Exterior"}: ${nPl} ${n1(def.pPl)}% × ${nPt} `
@@ -4508,6 +4658,43 @@ ext.filtro = "todos";
  * Europa e das Américas. O modelo compara o que saiu das urnas com o que
  * essas mesmas urnas deram no 1º turno, mede a mudança (o "swing") e a aplica
  * ao que falta, cidade a cidade, a partir do 1º turno de cada uma. */
+/* Região do mundo de cada país (pelo código ISO da bandeira). */
+const REGIOES_MUNDO = [
+  ["sul", "América do Sul", "🌎", "AR BO CL CO EC GY GF PY PE SR UY VE"],
+  ["central", "América Central e Caribe", "🌎", "AG BS BB BZ CR CU SV GT HT HN JM NI PA DO LC TT"],
+  ["norte", "América do Norte", "🌎", "US CA MX"],
+  ["europa", "Europa", "🌍", "AL DE AT BE BA BG CY HR DK SK SI ES EE FI FR GR HU IE IT NO NL PL PT GB CZ RO RU RS SE CH UA"],
+  ["africa", "África", "🌍", "AO DZ BJ BW BF CV CM CG CD CI EG ET GA GH GN GQ GW KE LY MW ML MA MZ NA NG ST SN TZ TG TN ZM ZW ZA"],
+  ["oriente", "Oriente Médio", "🌍", "SA BH QA AE IQ IR IL JO KW LB OM PS SY TR"],
+  ["asia", "Ásia", "🌏", "AM AZ BD KZ CN KP KR PH GE IN ID JP MY MM NP PK SG LK TH TW TL VN"],
+  ["oceania", "Oceania", "🌏", "AU NZ"],
+];
+const REGIAO_DO_ISO = {};
+for (const [k, , , l] of REGIOES_MUNDO) for (const c of l.split(" ")) REGIAO_DO_ISO[c] = k;
+const regiaoDoPais = (nome) => REGIAO_DO_ISO[ISO_PAIS[nome]] || "asia";
+const statusDe = (st, ts) => ts > 0 && st >= ts ? "fin" : st > 0 ? "par" : "esp";
+const ROTULO_ST = { fin: "✓ Finalizado", par: "◔ Em andamento", esp: "Aguardando" };
+
+/* Junta os países em regiões: votos, 1º turno nas mesmas cidades, urnas e
+ * quantos países de cada região já terminaram. */
+function agregarRegioes(lista) {
+  const m = new Map(REGIOES_MUNDO.map(([k, nome, globo]) => [k, { k, nome, globo, pl: 0, pt: 0,
+    t1pl: 0, t1pt: 0, t1v: 0, te: 0, st: 0, ts: 0, paises: [] }]));
+  for (const p of lista) {
+    const r = m.get(regiaoDoPais(p.nome));
+    r.pl += p.pl; r.pt += p.pt; r.t1pl += p.t1pl; r.t1pt += p.t1pt; r.t1v += p.t1v;
+    r.te += p.te; r.st += p.st; r.ts += p.ts;
+    r.paises.push(p);
+  }
+  for (const r of m.values()) {
+    r.paises.sort((a, b) => b.te - a.te);
+    r.nFim = r.paises.filter((p) => statusDe(p.st, p.ts) === "fin").length;
+    r.nVoto = r.paises.filter((p) => p.pl + p.pt > 0).length;
+    r.status = r.paises.length && r.nFim === r.paises.length ? "fin" : r.nVoto ? "par" : "esp";
+  }
+  return [...m.values()].filter((r) => r.paises.length);
+}
+
 function projetarExterior() {
   const cds = [...ext.cidades.keys()].filter((cd) => EXT_1T[cd] && (EXT_1T[cd][0] + EXT_1T[cd][1]) > 0);
   if (!cds.length) return null;
@@ -4656,6 +4843,47 @@ function pintaExterior() {
     hora: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }).replace(":", "h") };
   $("btExtCompartilhar").hidden = !v;
 
+  // Por região do mundo.
+  const regioes = agregarRegioes(lista);
+  ext.ultimo.regioes = regioes;
+  $("cartaoExtRegioes").hidden = false;
+  const regFim = regioes.filter((r) => r.status === "fin").length;
+  $("extRegConta").textContent = regFim + " de " + regioes.length + " finalizadas";
+  $("extRegioes").innerHTML = regioes.map((r) => {
+    const vv = r.pl + r.pt, pp = vv ? 100 * r.pl / vv : null;
+    const lidera = pp == null ? null : pp >= 50 ? "pl" : "pt";
+    const chip = (cls, nome, agora, antes) => {
+      const d = agora - antes;
+      return `<span class="ch ${cls}">${nome} <b>${d >= 0 ? "▲ +" : "▼ −"}${n1(Math.abs(d))}</b>`
+        + ` <em>era ${n1(antes)}%</em></span>`;
+    };
+    const paisesHtml = r.paises.map((p) => {
+      const stp = statusDe(p.st, p.ts), v2 = p.pl + p.pt;
+      const lid = v2 ? (p.pl >= p.pt ? `<em style="color:var(--pl)">${nPl} ${n1(100 * p.pl / v2)}%</em>`
+        : `<em style="color:var(--pt)">${nPt} ${n1(100 * p.pt / v2)}%</em>`) : "";
+      return `<span class="${stp}">${bandeira(p.nome)} ${esc(p.nome)} ${lid} ${stp === "fin" ? "✓" : stp === "par" ? "◔" : "·"}</span>`;
+    }).join("");
+    return `<div class="pais regiao${pp == null ? " vazio-pais" : ""}">`
+      + `<div class="globo" aria-hidden="true">${r.globo}</div>`
+      + `<div><div class="p">${esc(r.nome)}<span class="st-pais ${r.status}">${ROTULO_ST[r.status]}</span></div>`
+      + `<div class="d">${r.paises.length} ${r.paises.length === 1 ? "país" : "países"} · ${r.nFim} finalizado${r.nFim === 1 ? "" : "s"}`
+      + ` · ${mil(r.st)}/${mil(r.ts)} urnas · ${mil(r.te)} eleitores</div></div>`
+      + (pp == null ? `<div class="r" style="color:var(--fraco);font-size:13px">aguardando</div>`
+        : `<div class="r" style="color:var(--${lidera})">${n1(lidera === "pl" ? pp : 100 - pp)}%`
+          + `<small>${lidera === "pl" ? nPl : nPt}</small></div>`
+          + `<div class="barra2"><i style="width:${pp}%;background:var(--pl)"></i>`
+          + `<i style="width:${100 - pp}%;background:var(--pt)"></i></div>`
+          + `<div class="nums"><span class="a">${nPl} ${n1(pp)}% · ${mil(r.pl)}</span>`
+          + `<span class="b">${mil(r.pt)} · ${n1(100 - pp)}% ${nPt}</span></div>`
+          + (compara && r.t1v
+            ? `<div class="cmp">${chip("pl", nPl, pp, 100 * r.t1pl / r.t1v)}`
+              + `${chip("pt", nPt, 100 - pp, 100 * r.t1pt / r.t1v)}</div>` : ""))
+      + `<details class="reg-paises"><summary>🌐 Ver os ${r.paises.length} ${r.paises.length === 1 ? "país" : "países"}</summary>`
+      + `<div class="reg-pp">${paisesHtml}</div></details>`
+      + (pp == null ? "" : `<button class="pais-sh reg-sh" data-reg="${r.k}">↗ Compartilhar ${esc(r.nome)}</button>`)
+      + `</div>`;
+  }).join("");
+
   // Lista por país.
   $("cartaoExtPaises").hidden = false;
   $("extConta").textContent = comVoto.length + " de " + lista.length + " países com voto";
@@ -4774,6 +5002,35 @@ $("btExtCompartilhar").addEventListener("click", () => {
         `${lid}: chance de vencer no exterior em ${Math.min(99, Math.max(50, Math.round(100 * ch)))}%`];
     })() : "",
     paises: u.proj ? paises.slice(0, 5) : paises });
+});
+function defRegiao(r) {
+  const mil = (v) => Math.round(v).toLocaleString("pt-BR");
+  const v = r.pl + r.pt, pPl = 100 * r.pl / v;
+  return { tipo: "regiao", nome: r.nome, globo: r.globo, status: r.status, oficial: ext.modo !== "bu", pPl,
+    votos: `${mil(r.pl)} × ${mil(r.pt)} votos`,
+    sub: `${r.nFim} de ${r.paises.length} ${r.paises.length === 1 ? "país finalizado" : "países finalizados"} · `
+      + `${mil(r.st)} de ${mil(r.ts)} urnas · ${ext.ultimo.hora}`,
+    cmp: ext.ultimo.compara && r.t1v ? [pPl - 100 * r.t1pl / r.t1v, 100 * r.t1pl / r.t1v,
+      (100 - pPl) - 100 * r.t1pt / r.t1v, 100 * r.t1pt / r.t1v] : null,
+    paises: r.paises.slice().sort((a, b) => ((b.pl + b.pt > 0) - (a.pl + a.pt > 0)) || (b.te - a.te)).map((p) => ({ nome: p.nome, bandeira: bandeira(p.nome), st: statusDe(p.st, p.ts),
+      pPl: p.pl + p.pt ? 100 * p.pl / (p.pl + p.pt) : null })) };
+}
+$("extRegioes").addEventListener("click", (ev) => {
+  const b = ev.target.closest(".reg-sh");
+  if (!b || !ext.ultimo || !ext.ultimo.regioes) return;
+  const r = ext.ultimo.regioes.find((x) => x.k === b.dataset.reg);
+  if (r && r.pl + r.pt) abrirCard(defRegiao(r));
+});
+$("btExtRegioes").addEventListener("click", () => {
+  const u = ext.ultimo;
+  if (!u || !u.regioes) return;
+  abrirCard({ tipo: "regioes", oficial: ext.modo !== "bu", hora: u.hora,
+    sub: (ext.modo === "bu" ? `${Math.round(u.st).toLocaleString("pt-BR")} de ${Math.round(u.ts).toLocaleString("pt-BR")} urnas com boletim`
+      : `${n1(u.ts ? 100 * u.st / u.ts : 0)}% das urnas apuradas`) + ` · ${u.hora}`,
+    regioes: u.regioes.map((r) => ({ nome: r.nome, globo: r.globo, status: r.status, nFim: r.nFim,
+      n: r.paises.length, pl: r.pl, pt: r.pt,
+      d: u.compara && r.t1v && r.pl + r.pt ? 100 * r.pl / (r.pl + r.pt) - 100 * r.t1pl / r.t1v : null,
+      dPt: u.compara && r.t1v && r.pl + r.pt ? 100 * r.pt / (r.pl + r.pt) - 100 * r.t1pt / r.t1v : null })) });
 });
 $("extLista").addEventListener("click", (ev) => {
   const b = ev.target.closest(".pais-sh");
