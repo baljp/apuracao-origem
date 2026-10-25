@@ -2979,7 +2979,7 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
   const hora = horaTSE || new Date().toLocaleTimeString("pt-BR");
   // Enquanto não há voto totalizado, dizer "dados do TSE de 16:56" sugere
   // que existe número ali. Existe conexão, que é outra coisa.
-  let st = r.pctApurado > 0.05
+  let st = r.votosApurados > 0
     ? '<span class="pisca"></span>dados do TSE de ' + esc(hora)
       + " · tempo real, atualiza sozinho"
     : '<span class="pisca"></span>conectado ao TSE · nenhum voto totalizado '
@@ -3029,7 +3029,9 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
     return;
   }
 
-  const comecou = temVoto && r.pctApurado > 0.05;
+  // Mostra assim que o TSE totaliza o primeiro voto (o aviso de "abaixo de 1%
+  // a projeção é instável" já vai junto no placar).
+  const comecou = temVoto && r.votosApurados > 0;
   if (DEMO === null) atualizarFaixa(r, comecou);
   $("vazio").style.display = comecou ? "none" : "block";
   $("placar").style.display = comecou ? "block" : "none";
