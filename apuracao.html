@@ -1177,7 +1177,7 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
       da noite, o número do TSE mostra <b>só quem já contou</b> — e não o país
       inteiro. A projeção completa a conta com o que falta.</p>
     <ol class="passos">
-      <li>Lê os votos oficiais do TSE a cada 25 segundos.</li>
+      <li>Lê os votos oficiais do TSE em tempo real: pergunta de novo segundos depois de cada publicação.</li>
       <li>Compara cada cidade com como ela votou no 1º turno.</li>
       <li>Aplica essa mudança ao que ainda falta contar.</li>
     </ol>
@@ -1894,7 +1894,22 @@ async function buscar(url) {
   // acompanhando ao mesmo tempo.
   const r = await fetch(url, { cache: "no-cache" });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  // A rede do TSE diz quantos segundos faltam para a cópia dela ser trocada
+  // ("max-age"). É o relógio mais preciso que existe para saber quando vai
+  // ter número novo: a página pergunta de novo logo depois disso.
+  const m = /max-age=(\d+)/.exec(r.headers.get("cache-control") || "");
+  if (m) {
+    const quando = Date.now() + 1000 * (+m[1]);
+    if (!(proximaTroca > Date.now()) || quando < proximaTroca) proximaTroca = quando;
+  }
   return r.json();
+}
+
+let proximaTroca = 0;
+/* Milissegundos até a próxima troca de arquivo na rede do TSE (0 = não sei). */
+function msAteNovidade() {
+  const ms = proximaTroca - Date.now();
+  return ms > 0 ? ms : 0;
 }
 
 /* Roda as tarefas com um teto de simultâneas, para não abrir 54 conexões de
@@ -2517,7 +2532,7 @@ async function cruzarComTSE(pesquisas) {
 }
 
 
-const tse = { lerTudo, lerResultados, lerAndamento, lerMunicipio, lerAndamentoUF, ELEICAO_1T,
+const tse = { lerTudo, lerResultados, lerAndamento, lerMunicipio, lerAndamentoUF, msAteNovidade, ELEICAO_1T,
               ELEICAO_2T, UFS };
 const pq = { buscarSegundoTurno, buscarPrimeiroTurno, agregar, cruzarComTSE,
              REAL_1T };
@@ -2753,7 +2768,14 @@ async function iniciar() {
  * não muda nada: continua atualizando a cada vinte e poucos segundos.
  */
 function agendarProximo() {
-  const espera = INTERVALO * (0.8 + 0.4 * Math.random());
+  // Na apuração, a espera segue o relógio do próprio TSE: a rede dele avisa
+  // quando a cópia dos arquivos vai ser trocada, e a página pergunta 1 a 3 s
+  // depois — o número novo aparece na tela praticamente no mesmo instante em
+  // que sai. Entre 5 e 25 s, para nunca martelar nem ficar parada.
+  const ms = tse.msAteNovidade();
+  const espera = (DEMO === null && ms > 0 && (TURNO !== tse.ELEICAO_2T || Date.now() >= ABERTURA))
+    ? Math.min(AO_VIVO, Math.max(5000, ms + 1000 + 2000 * Math.random()))
+    : INTERVALO * (0.8 + 0.4 * Math.random());
   setTimeout(async () => {
     await tick();
     agendarProximo();
@@ -2797,7 +2819,7 @@ async function tick() {
       return;
     }
     $("status").innerHTML = '<span class="erro">⚠ falha ao ler o TSE — tentando de novo'
-      + " em 25 segundos</span>";
+      + " em instantes</span>";
   }
 }
 
@@ -2831,7 +2853,7 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
   // que existe número ali. Existe conexão, que é outra coisa.
   let st = r.pctApurado > 0.05
     ? '<span class="pisca"></span>dados do TSE de ' + esc(hora)
-      + " · atualiza sozinho a cada 25 s"
+      + " · tempo real, atualiza sozinho"
     : '<span class="pisca"></span>conectado ao TSE · nenhum voto totalizado '
       + "ainda · " + esc(hora);
   if (falhas && falhas.length) {
@@ -4411,14 +4433,14 @@ async function carregarExterior(forcar) {
         }
       }));
       $("extNota").innerHTML = "<strong>Totalização oficial do TSE.</strong> Atualiza sozinho a "
-        + "cada 25 segundos enquanto esta seção estiver aberta."
+        + "cada poucos segundos, assim que o TSE publica, enquanto esta seção estiver aberta."
         + (DEMO !== null ? " (Ensaio: números do 1º turno.)" : "");
-    } else if (forcar || Date.now() - bu.ultima > 55000) {
+    } else if (forcar || Date.now() - bu.ultima > 20000) {
       await lerBoletinsExterior();
       $("extNota").innerHTML = "<strong>Parcial, pelos boletins de urna</strong> que o TSE já "
         + "publicou das seções do exterior que fecharam — é de onde saem os primeiros "
         + "números da imprensa. <strong>Não é a totalização oficial</strong>, que começa às "
-        + "17h de Brasília. Novos boletins entram sozinhos a cada minuto.";
+        + "17h de Brasília. Novos boletins entram sozinhos, em tempo real (a cada ~20 s).";
     }
   } catch {
     $("extNota").textContent = "Não consegui ler o exterior no TSE agora. Tentando de novo em seguida.";
@@ -4597,13 +4619,13 @@ $("btExtCarregar").addEventListener("click", () => {
   }
   carregarExterior(true);
   // Atualiza sozinho — só para quem abriu. Boletins de 2 em 2 minutos;
-  // totalização oficial a cada 25 s.
+  // totalização oficial a cada 10 s (só um arquivo pequeno, e as cidades que mudaram).
   if (!ext.timer && (DEMO === null)) {
     // Mesmo ritmo do resto da página: o TSE republica a cada ~27 s, e o
     // arquivo só vem inteiro quando mudou (o "no-cache" pergunta antes).
     ext.timer = setInterval(() => {
       if (!document.hidden) carregarExterior();
-    }, AO_VIVO);
+    }, 10000);
   }
 });
 $("btExtTodos").addEventListener("click", () => { ext.todos = !ext.todos; pintaExterior(); });

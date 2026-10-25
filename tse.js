@@ -57,7 +57,22 @@ async function buscar(url) {
   // acompanhando ao mesmo tempo.
   const r = await fetch(url, { cache: "no-cache" });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  // A rede do TSE diz quantos segundos faltam para a cópia dela ser trocada
+  // ("max-age"). É o relógio mais preciso que existe para saber quando vai
+  // ter número novo: a página pergunta de novo logo depois disso.
+  const m = /max-age=(\d+)/.exec(r.headers.get("cache-control") || "");
+  if (m) {
+    const quando = Date.now() + 1000 * (+m[1]);
+    if (!(proximaTroca > Date.now()) || quando < proximaTroca) proximaTroca = quando;
+  }
   return r.json();
+}
+
+let proximaTroca = 0;
+/* Milissegundos até a próxima troca de arquivo na rede do TSE (0 = não sei). */
+export function msAteNovidade() {
+  const ms = proximaTroca - Date.now();
+  return ms > 0 ? ms : 0;
 }
 
 /* Roda as tarefas com um teto de simultâneas, para não abrir 54 conexões de
