@@ -303,6 +303,9 @@ h2{
   position:absolute;left:50%;top:8px;transform:translateX(-50%);
   font-size:10.5px;color:rgba(255,255,255,.65);letter-spacing:.06em;font-weight:800;
 }
+#probabilidade.chance-br{font-size:16.5px;font-weight:850;background:rgba(242,181,68,.14);
+  border:1.5px solid rgba(242,181,68,.55)}
+#probabilidade.chance-br b{font-size:clamp(22px,6.4vw,28px);font-weight:900;color:#FFC94D}
 #probabilidade{
   font-size:14.5px;margin-top:10px;color:#fff;font-weight:750;
   background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
@@ -837,6 +840,19 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 .ext-vence{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .ext-vence span{font-size:12.5px;font-weight:850;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08)}
 .ext-lista{display:grid;gap:9px}
+.ext-andamento{margin-top:14px;padding:11px 13px;border-radius:14px;background:rgba(16,185,129,.1);border:1px solid rgba(110,231,183,.35)}
+.ext-andamento .t{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ext-andamento .t span{font-size:11.5px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.75)}
+.ext-andamento .t b{font-size:clamp(22px,6.6vw,28px);font-weight:900;color:#6EE7B7;letter-spacing:-.02em}
+.ext-andamento .progresso{height:9px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:6px}
+.ext-andamento .progresso i{display:block;height:100%;background:linear-gradient(90deg,#10B981,#6EE7B7);border-radius:999px}
+.ext-andamento .l{font-size:12px;font-weight:750;color:rgba(255,255,255,.65);margin-top:5px}
+.pct-apu{color:#059669;font-weight:900}
+.reg-apu{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:11.5px;font-weight:800;color:var(--fraco)}
+.reg-apu b{color:#059669;font-weight:900;white-space:nowrap}
+.reg-apu .progresso{flex:1;height:7px;border-radius:999px;background:rgba(127,127,127,.15);overflow:hidden;min-width:40px}
+.reg-apu .progresso i{display:block;height:100%;background:linear-gradient(90deg,#10B981,#6EE7B7)}
+.reg-apu em{font-style:normal;white-space:nowrap}
 .reg-intro{font-size:13px;color:var(--fraco);font-weight:650;line-height:1.45;margin:-4px 0 12px}
 .regiao .globo{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:26px;
   background:linear-gradient(135deg,rgba(242,181,68,.22),rgba(242,181,68,.06));border:1px solid rgba(242,181,68,.4)}
@@ -1934,16 +1950,16 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
   } else if (dentroDaMargem) {
     txt = "A diferença está dentro da margem de erro — ainda não dá para "
         + "dizer quem ganhou.";
-  } else if (p > 0.995) {
-    txt = "O modelo dá mais de 99% de chance de vitória de " + nomes.pl + ".";
-  } else if (p < 0.005) {
-    txt = "O modelo dá mais de 99% de chance de vitória de " + nomes.pt + ".";
-  } else if (p >= 0.5) {
-    txt = "Chance estimada de vitória: " + n1(p * 100) + "% para " + nomes.pl + ".";
-  } else {
-    txt = "Chance estimada de vitória: " + n1(100 - p * 100) + "% para " + nomes.pt + ".";
   }
-  $("probabilidade").textContent = txt;
+  if (txt) {
+    $("probabilidade").className = "";
+    $("probabilidade").textContent = txt;
+  } else {
+    const lid = p >= 0.5 ? nomes.pl : nomes.pt;
+    const pc = Math.min(99, Math.max(50, Math.round(100 * Math.max(p, 1 - p))));
+    $("probabilidade").className = "chance-br";
+    $("probabilidade").innerHTML = esc(lid.split(" ")[0]) + ": chance de vencer em <b>" + pc + "%</b>";
+  }
 
   $("bruto").textContent = r.brutoPl == null ? "—" : n1(r.brutoPl) + "%";
 
@@ -2557,20 +2573,29 @@ function cardMarco(ctx, c) {
     rr(ctx, 100, 520, Math.max(16, (CW - 200) * Math.min(c.pct, 100) / 100), 16, 8);
     ctx.fillStyle = gradTexto(ctx, 100, CW - 100, "#10B981", "#6EE7B7"); ctx.fill();
   }
-  blocoDuelo(ctx, 572, 290, "OFICIAL DO TSE AGORA", c.of, false);
-  const ch = c.ch == null ? "" : c.ch > 0.995 ? " · chance >99%"
-    : c.ch < 0.005 ? " · chance >99%"
-    : " · chance " + Math.round(100 * Math.max(c.ch, 1 - c.ch)) + "%";
-  blocoDuelo(ctx, 916, 370, "PROJEÇÃO DO RESULTADO FINAL", c.pr, true,
-    c.lo != null ? `margem ${n1(c.lo)}–${n1(c.hi)}%${ch}` : "");
+  blocoDuelo(ctx, 572, 270, "OFICIAL DO TSE AGORA", c.of, false);
+  blocoDuelo(ctx, 880, 364, "★ PROJEÇÃO DO ALGORITMO", c.pr, true,
+    c.lo != null ? `margem de 90%: ${n1(c.lo)}–${n1(c.hi)}%` : "");
+  // chance de vencer, em destaque
+  {
+    const margem = c.lo != null && c.lo < 50 && c.hi > 50;
+    const t = c.ch == null ? "" : margem ? "Dentro da margem de erro: ainda não dá para dizer quem ganha"
+      : (c.ch >= 0.5 ? nomes.pl : nomes.pt).split(" ")[0] + ": chance de vencer em "
+        + Math.min(99, Math.max(50, Math.round(100 * Math.max(c.ch, 1 - c.ch)))) + "%";
+    if (t) {
+      rr(ctx, 70, 1270, CW - 140, 66, 33); ctx.fillStyle = "rgba(242,181,68,.16)"; ctx.fill();
+      ctx.lineWidth = 2.5; ctx.strokeStyle = "rgba(242,181,68,.75)"; ctx.stroke();
+      txCabe(ctx, t, CW / 2, 1315, margem ? 28 : 38, 900, OURO, CW - 180, "center");
+    }
+  }
   // regiões
-  let y = 1332;
+  let y = 1384;
   tx(ctx, "POR REGIÃO", 100, y, 28, 900, OURO, "left", 5);
   tx(ctx, "apurado", 570, y, 24, 800, "rgba(251,248,241,.55)", "center", 2);
   tx(ctx, "projeção", CW - 100, y, 24, 800, "rgba(251,248,241,.55)", "right", 2);
   y += 8;
   for (const [nome, apu, p] of c.reg || []) {
-    y += 57;
+    y += 50;
     tx(ctx, nome, 100, y, 34, 900, MARFIM);
     rr(ctx, 440, y - 22, 200, 14, 7); ctx.fillStyle = "rgba(251,248,241,.12)"; ctx.fill();
     rr(ctx, 440, y - 22, Math.max(14, 200 * Math.min(apu, 100) / 100), 14, 7);
@@ -2700,7 +2725,7 @@ function cardExterior(ctx, d) {
     rr(ctx, 70, y - 50, CW - 140, 64, 18); ctx.fillStyle = "rgba(251,248,241,.06)"; ctx.fill();
     tx(ctx, p.bandeira, 100, y - 2, 38, 400, "#fff");
     txCabe(ctx, p.nome, 160, y - 14, 30, 900, MARFIM, 330);
-    tx(ctx, p.fim ? "✓ FINALIZADO" : "PARCIAL · EM ANDAMENTO", 160, y + 14, 19, 900,
+    tx(ctx, p.fim ? "✓ FINALIZADO" : "EM ANDAMENTO · " + n1(p.apu) + "% APURADO", 160, y + 14, 19, 900,
       p.fim ? "#6EE7B7" : OURO, "left", 2);
     rr(ctx, 520, y - 26, 200, 12, 6); ctx.fillStyle = "rgba(251,248,241,.12)"; ctx.fill();
     ctx.save(); rr(ctx, 520, y - 26, 200, 12, 6); ctx.clip();
@@ -2748,7 +2773,8 @@ function cardRegiao(ctx, d) {
   tx(ctx, d.globo, CW / 2, 330, 120, 400, "#fff", "center");
   txCabe(ctx, d.nome, CW / 2, 450, 100, 700, MARFIM, CW - 140, "center", SLAB);
   txCabe(ctx, d.sub, CW / 2, 510, 30, 800, "rgba(251,248,241,.72)", CW - 140, "center");
-  seloSituacao(ctx, CW / 2, 572, d.status, true);
+  seloSituacao(ctx, CW / 2, 572, d.status, true,
+    ["✓ APURAÇÃO FINALIZADA", "EM ANDAMENTO · " + n1(d.apu || 0) + "% APURADO", "AGUARDANDO"]);
   blocoDuelo(ctx, 630, 370, d.oficial ? "BRASILEIROS NO EXTERIOR · TSE"
     : d.status === "fin" ? "BOLETINS DE URNA · TODAS AS URNAS" : "PARCIAL · BOLETINS DE URNA", d.pPl, true, d.votos);
   let y = 1050;
@@ -2772,7 +2798,7 @@ function cardRegiao(ctx, d) {
     rr(ctx, 70, y - 44, CW - 140, 56, 16); ctx.fillStyle = "rgba(251,248,241,.06)"; ctx.fill();
     tx(ctx, p.bandeira, 96, y - 4, 32, 400, "#fff");
     txCabe(ctx, p.nome, 146, y - 6, 28, 900, MARFIM, 300);
-    seloSituacao(ctx, 560, y - 4, p.st, false);
+    seloSituacao(ctx, 560, y - 4, p.st, false, ["✓ FINALIZADO", "EM ANDAMENTO · " + n1(p.apu) + "%", "AGUARDANDO"]);
     if (p.pPl != null) {
       const lPl = p.pPl >= 50;
       tx(ctx, (lPl ? nomes.pl : nomes.pt).split(" ")[0] + " " + n1(lPl ? p.pPl : 100 - p.pPl) + "%",
@@ -2803,8 +2829,9 @@ function cardRegioes(ctx, d) {
     rr(ctx, 64, y, CW - 128, h, 22); ctx.fillStyle = "rgba(251,248,241,.07)"; ctx.fill();
     const v = r.pl + r.pt, pPl = v ? 100 * r.pl / v : null;
     tx(ctx, r.globo, 96, y + 46, 34, 400, "#fff");
-    txCabe(ctx, r.nome, 148, y + 44, 30, 900, MARFIM, 420);
-    seloSituacao(ctx, pPl != null ? 680 : CW - 170, y + 42, r.status, false);
+    txCabe(ctx, r.nome, 148, y + 44, 30, 900, MARFIM, 350);
+    seloSituacao(ctx, pPl != null ? 660 : CW - 170, y + 42, r.status, false,
+      ["✓ FINALIZADO", "EM ANDAMENTO · " + n1(r.apu || 0) + "%", "AGUARDANDO"]);
     if (pPl != null) {
       const lPl = pPl >= 50;
       tx(ctx, n1(lPl ? pPl : 100 - pPl) + "%", CW - 92, y + 46, 36, 900, lPl ? "#A9CAFF" : "#FFADA6", "right");
@@ -3682,7 +3709,9 @@ function placarProjExterior(pr, nPl, nPt) {
     + `<div class="barra"><i style="width:${pr.pPl}%;background:linear-gradient(90deg,#1D4ED8,#60A5FA)"></i>`
     + `<i style="width:${100 - pr.pPl}%;background:linear-gradient(90deg,#F87171,#B91C1C)"></i></div>`
     + `<div class="meio"><span>50%</span></div>`
-    + `<div class="chance-ext">${lider}: chance de vencer <u>no exterior</u> em <b>${chTxt}</b></div>`
+    + (pr.lo < 50 && pr.hi > 50
+      ? `<div class="chance-ext">Dentro da margem de erro: ainda não dá para dizer quem vence no exterior</div>`
+      : `<div class="chance-ext">${lider}: chance de vencer <u>no exterior</u> em <b>${chTxt}</b></div>`)
     + `<div class="so-ext">🌎 Vale só para o exterior — não é a apuração nem a projeção do Brasil</div></div>`;
 }
 
@@ -3766,7 +3795,11 @@ function pintaExterior() {
   const pPl = v ? 100 * pl / v : null;
   let proj = null;
   if (compara && v) { try { proj = projetarExterior(); } catch {} }
-  $("extResumo").innerHTML = (v
+  $("extResumo").innerHTML = `<div class="ext-andamento" style="margin:0 0 14px"><div class="t"><span>Andamento da apuração no exterior</span>`
+    + `<b>${n1(ts ? 100 * st / ts : 0)}%</b></div>`
+    + `<div class="progresso"><i style="width:${ts ? 100 * st / ts : 0}%"></i></div>`
+    + `<div class="l">${mil(st)} de ${mil(ts)} urnas ${ext.modo === "bu" ? "com boletim publicado" : "apuradas"}</div></div>`
+    + (v
     ? `<span class="rotulo" style="display:block;margin:2px 0 8px">Contado até agora</span>`
       + `<div class="ext-placar placar">`
       + `<div class="lado pl"><div class="quem"><span class="avatar">FB</span><div class="nome">${nPl}</div></div>`
@@ -3783,8 +3816,8 @@ function pintaExterior() {
       + `Os primeiros chegam quando as seções da Ásia e da Oceania fecham.</div>`)
     + `<div class="ext-stats">`
     + `<div><b>${mil(te)}</b><span>eleitores no exterior</span></div>`
-    + `<div><b>${mil(st)}<small style="font-size:.6em;opacity:.7"> / ${mil(ts)}</small></b>`
-    + `<span>${ext.modo === "bu" ? "urnas com boletim publicado" : "urnas apuradas"}</span></div>`
+    + `<div><b>${lista.filter((p) => p.ts && p.st >= p.ts).length}<small style="font-size:.6em;opacity:.7"> / ${lista.length}</small></b>`
+    + `<span>países finalizados</span></div>`
     + `<div><b>${comVoto.length}<small style="font-size:.6em;opacity:.7"> / ${lista.length}</small></b>`
     + `<span>países com voto contado</span></div></div>`
     + (compara && v && t1v
@@ -3825,7 +3858,9 @@ function pintaExterior() {
       + `<div class="globo" aria-hidden="true">${r.globo}</div>`
       + `<div><div class="p">${esc(r.nome)}<span class="st-pais ${r.status}">${ROTULO_ST[r.status]}</span></div>`
       + `<div class="d">${r.paises.length} ${r.paises.length === 1 ? "país" : "países"} · ${r.nFim} finalizado${r.nFim === 1 ? "" : "s"}`
-      + ` · ${mil(r.st)}/${mil(r.ts)} urnas · ${mil(r.te)} eleitores</div></div>`
+      + ` · ${mil(r.te)} eleitores</div>`
+      + `<div class="reg-apu"><b>${n1(r.ts ? 100 * r.st / r.ts : 0)}% apurado</b><span class="progresso"><i style="width:${r.ts ? 100 * r.st / r.ts : 0}%"></i></span>`
+      + `<em>${mil(r.st)}/${mil(r.ts)} urnas</em></div></div>`
       + (pp == null ? `<div class="r" style="color:var(--fraco);font-size:13px">aguardando</div>`
         : `<div class="r" style="color:var(--${lidera})">${n1(lidera === "pl" ? pp : 100 - pp)}%`
           + `<small>${lidera === "pl" ? nPl : nPt}</small></div>`
@@ -3860,9 +3895,8 @@ function pintaExterior() {
     const vv = p.pl + p.pt;
     const pp = vv ? 100 * p.pl / vv : null;
     const lidera = pp == null ? null : pp >= 50 ? "pl" : "pt";
-    const urnas = ext.modo === "bu"
-      ? `${p.st}/${p.ts} ${p.ts === 1 ? "urna" : "urnas"}`
-      : `${n1(p.ts ? 100 * p.st / p.ts : 0)}% apurado`;
+    const urnas = `<b class="pct-apu">${n1(p.ts ? 100 * p.st / p.ts : 0)}% apurado</b> · `
+      + `${p.st}/${p.ts} ${p.ts === 1 ? "urna" : "urnas"}`;
     return `<div class="pais${pp == null ? " vazio-pais" : ""}">`
       + `<div class="bandeira" aria-hidden="true">${bandeira(p.nome)}</div>`
       + `<div><div class="p">${esc(p.nome)}</div>`
@@ -3946,18 +3980,19 @@ $("btExtCompartilhar").addEventListener("click", () => {
   const mil = (v) => Math.round(v).toLocaleString("pt-BR");
   const paises = u.lista.filter((p) => p.pl + p.pt > 0).sort((a, b) => b.te - a.te).slice(0, 7)
     .map((p) => ({ nome: p.nome, bandeira: bandeira(p.nome), pPl: 100 * p.pl / (p.pl + p.pt),
-      fim: p.ts > 0 && p.st >= p.ts }));
+      fim: p.ts > 0 && p.st >= p.ts, apu: p.ts ? 100 * p.st / p.ts : 0 }));
   abrirCard({ tipo: "exterior", oficial: ext.modo !== "bu", pPl: 100 * u.pl / (u.pl + u.pt),
     votos: `${mil(u.pl)} × ${mil(u.pt)} votos`,
-    sub: (ext.modo === "bu" ? `${mil(u.st)} de ${mil(u.ts)} urnas com boletim` : `${n1(u.ts ? 100 * u.st / u.ts : 0)}% das urnas apuradas`)
-      + ` · ${u.hora}`,
+    sub: `${n1(u.ts ? 100 * u.st / u.ts : 0)}% das urnas apuradas · ${mil(u.st)} de ${mil(u.ts)} · ${u.hora}`,
+    apu: u.ts ? 100 * u.st / u.ts : 0,
     vant: u.compara ? vantTexto(u.pl, u.pt, u.t1pl, u.t1pt) : "",
     proj: u.proj ? (() => {
       const nPl = nomes.pl.split(" ")[0], nPt = nomes.pt.split(" ")[0];
       const lid = u.proj.pPl >= 50 ? nPl : nPt;
       const ch = u.proj.pPl >= 50 ? u.proj.chPl : 1 - u.proj.chPl;
       return [`Projeção só do exterior: ${nPl} ${n1(u.proj.pPl)}% × ${n1(100 - u.proj.pPl)}% ${nPt}`,
-        `${lid}: chance de vencer no exterior em ${Math.min(99, Math.max(50, Math.round(100 * ch)))}%`];
+        u.proj.lo < 50 && u.proj.hi > 50 ? "Dentro da margem de erro: ainda indefinido no exterior"
+          : `${lid}: chance de vencer no exterior em ${Math.min(99, Math.max(50, Math.round(100 * ch)))}%`];
     })() : "",
     paises: u.proj ? paises.slice(0, 4) : paises });
 });
@@ -3965,12 +4000,14 @@ function defRegiao(r) {
   const mil = (v) => Math.round(v).toLocaleString("pt-BR");
   const v = r.pl + r.pt, pPl = 100 * r.pl / v;
   return { tipo: "regiao", nome: r.nome, globo: r.globo, status: r.status, oficial: ext.modo !== "bu", pPl,
+    apu: r.ts ? 100 * r.st / r.ts : 0,
     votos: `${mil(r.pl)} × ${mil(r.pt)} votos`,
     sub: `${r.nFim} de ${r.paises.length} ${r.paises.length === 1 ? "país finalizado" : "países finalizados"} · `
-      + `${mil(r.st)} de ${mil(r.ts)} urnas · ${ext.ultimo.hora}`,
+      + `${n1(r.ts ? 100 * r.st / r.ts : 0)}% apurado · ${ext.ultimo.hora}`,
     cmp: ext.ultimo.compara && r.t1v ? [pPl - 100 * r.t1pl / r.t1v, 100 * r.t1pl / r.t1v,
       (100 - pPl) - 100 * r.t1pt / r.t1v, 100 * r.t1pt / r.t1v] : null,
-    paises: r.paises.slice().sort((a, b) => ((b.pl + b.pt > 0) - (a.pl + a.pt > 0)) || (b.te - a.te)).map((p) => ({ nome: p.nome, bandeira: bandeira(p.nome), st: statusDe(p.st, p.ts),
+    paises: r.paises.slice().sort((a, b) => ((b.pl + b.pt > 0) - (a.pl + a.pt > 0)) || (b.te - a.te)).map((p) => ({
+      apu: p.ts ? 100 * p.st / p.ts : 0, nome: p.nome, bandeira: bandeira(p.nome), st: statusDe(p.st, p.ts),
       pPl: p.pl + p.pt ? 100 * p.pl / (p.pl + p.pt) : null })) };
 }
 $("extRegioes").addEventListener("click", (ev) => {
@@ -3983,10 +4020,9 @@ $("btExtRegioes").addEventListener("click", () => {
   const u = ext.ultimo;
   if (!u || !u.regioes) return;
   abrirCard({ tipo: "regioes", oficial: ext.modo !== "bu", hora: u.hora,
-    sub: (ext.modo === "bu" ? `${Math.round(u.st).toLocaleString("pt-BR")} de ${Math.round(u.ts).toLocaleString("pt-BR")} urnas com boletim`
-      : `${n1(u.ts ? 100 * u.st / u.ts : 0)}% das urnas apuradas`) + ` · ${u.hora}`,
+    sub: `${n1(u.ts ? 100 * u.st / u.ts : 0)}% das urnas apuradas · ${Math.round(u.st).toLocaleString("pt-BR")} de ${Math.round(u.ts).toLocaleString("pt-BR")} · ${u.hora}`,
     regioes: u.regioes.map((r) => ({ nome: r.nome, globo: r.globo, status: r.status, nFim: r.nFim,
-      n: r.paises.length, pl: r.pl, pt: r.pt,
+      n: r.paises.length, pl: r.pl, pt: r.pt, apu: r.ts ? 100 * r.st / r.ts : 0,
       d: u.compara && r.t1v && r.pl + r.pt ? 100 * r.pl / (r.pl + r.pt) - 100 * r.t1pl / r.t1v : null,
       dPt: u.compara && r.t1v && r.pl + r.pt ? 100 * r.pt / (r.pl + r.pt) - 100 * r.t1pt / r.t1v : null })) });
 });
@@ -4000,8 +4036,8 @@ $("extLista").addEventListener("click", (ev) => {
   abrirCard({ tipo: "pais", nome: p.nome, bandeira: bandeira(p.nome), oficial: ext.modo !== "bu", pPl,
     fim: p.ts > 0 && p.st >= p.ts,
     votos: `${mil(p.pl)} × ${mil(p.pt)} votos`,
-    sub: `${mil(p.te)} eleitores · ` + (ext.modo === "bu" ? `${p.st} de ${p.ts} urnas com boletim`
-      : `${n1(p.ts ? 100 * p.st / p.ts : 0)}% apurado`) + ` · ${ext.ultimo.hora}`,
+    sub: `${n1(p.ts ? 100 * p.st / p.ts : 0)}% apurado · ${p.st} de ${p.ts} ${p.ts === 1 ? "urna" : "urnas"} · `
+      + `${mil(p.te)} eleitores · ${ext.ultimo.hora}`,
     cmp: ext.ultimo.compara && p.t1v ? [pPl - 100 * p.t1pl / p.t1v, 100 * p.t1pl / p.t1v,
       (100 - pPl) - 100 * p.t1pt / p.t1v, 100 * p.t1pt / p.t1v] : null,
     vant: ext.ultimo.compara ? vantTexto(p.pl, p.pt, p.t1pl, p.t1pt) : "" });
@@ -5313,7 +5349,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=f0307ad5b6").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=70b0b8ed0e").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
