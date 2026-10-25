@@ -781,6 +781,23 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 .an-bt{background:#1F2A44;color:#fff;text-decoration:none;font-weight:900;font-size:13px;
   border-radius:10px;padding:8px 11px;white-space:nowrap}
 .an-x{background:none;border:0;font-size:22px;line-height:1;color:#5A3B00;cursor:pointer;padding:2px 6px}
+.ext-resumo{display:grid;gap:8px;margin-bottom:12px}
+.ext-tot{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media (max-width:480px){ .ext-tot{grid-template-columns:1fr 1fr} }
+.ext-tot div{background:var(--superficie-2);border:1px solid var(--linha);border-radius:14px;padding:10px 12px}
+.ext-tot b{display:block;font-size:20px;font-weight:900;letter-spacing:-.02em}
+.ext-tot span{font-size:11.5px;color:var(--fraco);font-weight:750}
+.ext-tot b span{font-size:inherit;font-weight:900}
+.ext-lista{display:grid;gap:8px}
+.ext{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:11px 13px;
+  border-radius:14px;background:var(--superficie-2);border:1px solid var(--linha)}
+.ext .p{font-weight:900;font-size:15px;line-height:1.2}
+.ext .d{font-size:12px;color:var(--fraco);font-weight:700;margin-top:2px}
+.ext .v{text-align:right;font-weight:900;font-size:14.5px;white-space:nowrap}
+.ext .v .a{color:var(--pl)} .ext .v .b{color:var(--pt)}
+.ext .v small{display:block;font-size:11px;color:var(--fraco);font-weight:750}
+.ext .mini{grid-column:1 / -1;height:7px;border-radius:999px;overflow:hidden;display:flex;gap:2px;background:var(--linha)}
+.ext .mini i{display:block;height:100%}
 </style>
 </head>
 <body>
@@ -854,7 +871,7 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
   <nav class="atalhos" id="atalhos" aria-label="Ir para">
     <a href="#cartaoPlacar">Placar</a><a href="#cartaoFalta">Quanto falta</a>
     <a href="#cartaoRegistro">A cada 1%</a><a href="#cartaoMapa">Mapa</a>
-    <a href="#cartaoRegioes">Regiões</a><a href="#cartaoEstadosC">Estados</a>
+    <a href="#cartaoRegioes">Regiões</a><a href="#cartaoExterior">Exterior</a><a href="#cartaoEstadosC">Estados</a>
   </nav>
 
   <button class="avisoCard" id="avisoCard" hidden>
@@ -1019,6 +1036,19 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
     <div class="cab"><div><span class="rotulo">Brasil em cinco partes</span><h2>Por região</h2></div>
       <span class="pilula">projeção · votos válidos</span></div>
     <div class="regioes" id="regioes"></div>
+  </div>
+
+  <div class="cartao" id="cartaoExterior">
+    <div class="cab"><div><span class="rotulo">Brasileiros que votam fora do país</span>
+      <h2>Votos no exterior</h2></div><span class="pilula" id="extConta">por país</span></div>
+    <div class="ext-resumo" id="extResumo"><div class="faixa">Eleitores, urnas apuradas e
+      votos de Flávio e Lula em cada país onde há seção eleitoral.</div></div>
+    <div class="ext-lista" id="extLista"></div>
+    <div class="acoes" style="margin-top:12px">
+      <button class="bt-sec forte" id="btExtCarregar">Ver votos por país</button>
+      <button class="bt-sec" id="btExtTodos" hidden>Ver todos os países</button>
+    </div>
+    <div class="faixa" id="extNota" style="margin-top:10px"></div>
   </div>
 
   <div class="cartao" id="cartaoSaldo" style="display:none">
@@ -1882,6 +1912,20 @@ async function lerMunicipio(eleicao, uf, cd) {
   return { pl, pt, pctSecoes: num(s.pst), hora: doc.ht || "" };
 }
 
+/* Andamento de uma UF inteira, cidade a cidade — usado para o exterior, em
+ * que cada "município" é uma cidade com seção eleitoral fora do Brasil. */
+async function lerAndamentoUF(eleicao, uf) {
+  const doc = await buscar(urlAndamento(eleicao, uf));
+  return (doc.abr || []).filter((a) => a.tpabr === "mun").map((a) => ({
+    cd: a.cdabr,
+    te: num(a.e && a.e.te),          // eleitores aptos
+    est: num(a.e && a.e.est),        // eleitores das seções já totalizadas
+    ts: num(a.s && a.s.ts),          // seções
+    st: num(a.s && a.s.st),          // seções totalizadas
+    fim: a.and === "f",
+  }));
+}
+
 async function lerAndamento(eleicao) {
   const fracoes = new Map();
   const falhas = [];
@@ -2371,7 +2415,7 @@ async function cruzarComTSE(pesquisas) {
 }
 
 
-const tse = { lerTudo, lerResultados, lerAndamento, lerMunicipio, ELEICAO_1T,
+const tse = { lerTudo, lerResultados, lerAndamento, lerMunicipio, lerAndamentoUF, ELEICAO_1T,
               ELEICAO_2T, UFS };
 const pq = { buscarSegundoTurno, buscarPrimeiroTurno, agregar, cruzarComTSE,
              REAL_1T };
@@ -3934,6 +3978,113 @@ $("buscaMun").addEventListener("change", () => {
   } else abrir();
   $("buscaMun").blur();
 });
+
+/* ---- votos no exterior ----------------------------------------------------
+ *
+ * No TSE, o exterior é a "UF" ZZ, e cada cidade com seção eleitoral fora do
+ * país é um "município" (186 cidades). O arquivo de andamento da ZZ diz
+ * quantos eleitores e seções cada cidade tem e quantas já foram totalizadas;
+ * os votos de cada cidade vêm do arquivo dela, buscado só quando a cidade
+ * tem seção nova totalizada — são arquivos pequenos e a maioria das cidades
+ * fecha uma vez só. As cidades são agrupadas por país.
+ *
+ * Tudo começa no toque em "Ver votos por país": quem não abre a seção não
+ * baixa nada a mais. */
+const PAISES_EXTERIOR = {"29254":"Costa do Marfim","29262":"Emirados Árabes Unidos","99198":"Nigéria","29270":"Gana","99325":"Etiópia","30457":"Países Baixos","29289":"Jordânia","29297":"Turquia","29300":"Argélia","29319":"Uruguai","29327":"Paraguai","39241":"Cazaquistão","29335":"Grécia","39080":"Estados Unidos","99171":"Iraque","39128":"Azerbaijão","99350":"Mali","29343":"Tailândia","29351":"Espanha","99473":"Bahrein","29360":"Líbano","29378":"Sérvia","38881":"Belize","29386":"Alemanha","29394":"Guiné-Bissau","29408":"Colômbia","29416":"Estados Unidos","39209":"Eslováquia","39187":"Congo","29424":"Barbados","29432":"Bélgica","29440":"Romênia","29459":"Hungria","29467":"Argentina","29475":"Guiana Francesa (França)","29483":"Egito","29491":"Austrália","30651":"China","29505":"Venezuela","99384":"Santa Lúcia","29513":"Estados Unidos","29521":"Uruguai","29530":"África do Sul","29556":"Paraguai","29564":"Venezuela","99210":"Bolívia","29572":"Bolívia","30929":"Sri Lanka","38903":"Guiné","29580":"Paraguai","29599":"Dinamarca","38920":"Benin","29602":"Argentina","29610":"Senegal","29629":"Bangladesh","29637":"Síria","38962":"Tanzânia","29653":"Catar","29661":"Irlanda","29645":"Timor-Leste","99503":"Reino Unido","29670":"Paraguai","29688":"Suécia","30961":"Portugal","29696":"Alemanha","30669":"Botsuana","29700":"Suíça","29718":"Guiana","98000":"Guatemala","29742":"Japão","29750":"Vietnã","29769":"Zimbábue","30902":"Estados Unidos","29777":"Cuba","29785":"Finlândia","29793":"China","29807":"Estados Unidos","29815":"Camarões","38989":"Armênia","29823":"Peru","29831":"Paquistão","39306":"Turquia","29840":"Indonésia","29173":"Nepal","29858":"Ucrânia","99430":"Jamaica","29874":"Rep. Dem. do Congo","29882":"Kuwait","29890":"Malásia","29904":"Bolívia","29912":"Nigéria","29939":"Gabão","99341":"Malauí","29947":"Peru","29955":"Portugal","39160":"Eslovênia","29963":"Togo","29971":"Reino Unido","29980":"Estados Unidos","29998":"Angola","99287":"Zâmbia","30066":"Espanha","39263":"Guiné Equatorial","30082":"Filipinas","30074":"Nicarágua","30090":"Moçambique","99511":"França","39102":"Omã","39004":"Argentina","30104":"México","30112":"Estados Unidos","30120":"Itália","30147":"Uruguai","30155":"Canadá","30163":"Rússia","30171":"Índia","30180":"Alemanha","30198":"Japão","30201":"Quênia","99180":"Bahamas","39322":"Chipre","30210":"Índia","30228":"Estados Unidos","99490":"Estados Unidos","30244":"Noruega","30252":"Canadá","30260":"Panamá","30279":"Suriname","30287":"França","30295":"Argentina","30309":"Paraguai","30317":"China","30325":"Trinidad e Tobago","30341":"Portugal","30333":"Haiti","30350":"Tchéquia","30368":"Cabo Verde","30376":"África do Sul","99155":"Argentina","99236":"Bolívia","99295":"Coreia do Norte","30392":"Equador","30406":"Marrocos","30414":"Palestina","30422":"Arábia Saudita","30430":"Uruguai","99244":"Uruguai","30449":"Itália","99147":"Antígua e Barbuda","30465":"Paraguai","30473":"Bolívia","99279":"Venezuela","30481":"Chile","30988":"Bósnia e Herzegovina","30538":"Coreia do Sul","29548":"Singapura","99333":"Guiana Francesa (França)","30562":"Austrália","30490":"República Dominicana","30503":"Estados Unidos","30511":"Costa Rica","30520":"El Salvador","39225":"São Tomé e Príncipe","30546":"Bulgária","30570":"Taiwan","99317":"Estônia","99104":"Geórgia","30597":"Irã","30600":"Honduras","30619":"Israel","99139":"Albânia","30635":"Canadá","30686":"Líbia","30708":"Tunísia","30627":"Japão","39284":"Burkina Faso","39063":"Canadá","30740":"Polônia","30767":"Áustria","30783":"Estados Unidos","30805":"Nova Zelândia","30821":"Namíbia","30848":"China","99376":"Mianmar","39020":"Croácia","30864":"Suíça"};
+const ext = { cidades: new Map(), aberto: false, todos: false, lendo: false, timer: null };
+
+async function carregarExterior() {
+  if (ext.lendo) return;
+  ext.lendo = true;
+  const eleicao = DEMO !== null ? tse.ELEICAO_1T : TURNO;
+  const antesDas17 = DEMO === null && TURNO === tse.ELEICAO_2T && Date.now() < FECHAMENTO_URNAS;
+  try {
+    const and = await tse.lerAndamentoUF(eleicao, "zz");
+    const buscar = [];
+    for (const c of and) {
+      const ja = ext.cidades.get(c.cd) || {};
+      const novo = Object.assign(ja, c);
+      ext.cidades.set(c.cd, novo);
+      if (c.st > 0 && novo.stLido !== c.st) buscar.push(novo);
+    }
+    // No máximo 6 de cada vez, para não engasgar o celular.
+    let i = 0;
+    await Promise.all(Array.from({ length: 6 }, async () => {
+      while (i < buscar.length) {
+        const c = buscar[i++];
+        try {
+          const o = await tse.lerMunicipio(eleicao, "zz", c.cd);
+          c.pl = o.pl; c.pt = o.pt; c.stLido = c.st;
+        } catch {}
+      }
+    }));
+    $("extNota").innerHTML = antesDas17
+      ? "A votação no exterior segue o horário de cada país, mas o TSE só "
+        + "<strong>divulga resultados depois das 17h de Brasília</strong>, junto com "
+        + "o Brasil. A partir daí, esta lista se atualiza sozinha."
+      : "Votos já contados em cada país. Atualiza sozinho a cada minuto e meio "
+        + "enquanto esta seção estiver aberta." + (DEMO !== null ? " (Ensaio: números do 1º turno.)" : "");
+  } catch {
+    $("extNota").textContent = "Não consegui ler o exterior no TSE agora. Tentando de novo em seguida.";
+  }
+  ext.lendo = false;
+  pintaExterior();
+}
+
+function pintaExterior() {
+  const porPais = new Map();
+  let te = 0, ts = 0, st = 0, pl = 0, pt = 0, cidades = 0;
+  for (const [cd, c] of ext.cidades) {
+    const nome = PAISES_EXTERIOR[cd] || "Outros";
+    const p = porPais.get(nome) || { nome, te: 0, ts: 0, st: 0, pl: 0, pt: 0, cidades: 0 };
+    p.te += c.te || 0; p.ts += c.ts || 0; p.st += c.st || 0;
+    p.pl += c.pl || 0; p.pt += c.pt || 0; p.cidades++;
+    porPais.set(nome, p);
+    te += c.te || 0; ts += c.ts || 0; st += c.st || 0; pl += c.pl || 0; pt += c.pt || 0; cidades++;
+  }
+  if (!porPais.size) return;
+  const mil = (v) => Math.round(v).toLocaleString("pt-BR");
+  const nPl = esc(nomes.pl.split(" ")[0]), nPt = esc(nomes.pt.split(" ")[0]);
+  const v = pl + pt;
+  $("extConta").textContent = porPais.size + " países";
+  $("extResumo").innerHTML = '<div class="ext-tot">'
+    + `<div><b>${mil(te)}</b><span>eleitores no exterior</span></div>`
+    + `<div><b>${ts ? n1(100 * st / ts) : "0,0"}%</b><span>das urnas apuradas (${mil(st)} de ${mil(ts)})</span></div>`
+    + `<div><b>${v ? `<span style="color:var(--pl)">${n1(100 * pl / v)}</span> × <span style="color:var(--pt)">${n1(100 * pt / v)}</span>` : "—"}</b>`
+    + `<span>${nPl} × ${nPt} no exterior (válidos)</span></div></div>`;
+  const lista = [...porPais.values()].sort((a, b) => b.te - a.te);
+  const mostrar = ext.todos ? lista : lista.slice(0, 12);
+  $("extLista").innerHTML = mostrar.map((p) => {
+    const vv = p.pl + p.pt;
+    const pp = vv ? 100 * p.pl / vv : null;
+    const apu = p.ts ? 100 * p.st / p.ts : 0;
+    return `<div class="ext"><div><div class="p">${esc(p.nome)}</div>`
+      + `<div class="d">${mil(p.te)} eleitores · ${p.cidades} ${p.cidades === 1 ? "cidade" : "cidades"}`
+      + ` · ${n1(apu)}% das urnas apuradas</div></div>`
+      + `<div class="v">${pp == null ? '<span style="color:var(--fraco)">aguardando</span>'
+        : `<span class="a">${n1(pp)}%</span> × <span class="b">${n1(100 - pp)}%</span>`
+          + `<small>${mil(p.pl)} × ${mil(p.pt)} votos</small>`}</div>`
+      + (pp == null ? "" : `<div class="mini"><i style="width:${pp}%;background:var(--pl)"></i>`
+        + `<i style="width:${100 - pp}%;background:var(--pt)"></i></div>`)
+      + `</div>`;
+  }).join("");
+  $("btExtTodos").hidden = lista.length <= 12;
+  $("btExtTodos").textContent = ext.todos ? "Mostrar só os 12 maiores" : "Ver todos os " + lista.length + " países";
+}
+
+$("btExtCarregar").addEventListener("click", () => {
+  ext.aberto = true;
+  $("btExtCarregar").hidden = true;
+  $("extNota").textContent = "Lendo o exterior no TSE…";
+  carregarExterior();
+  // Enquanto a apuração corre, atualiza sozinho — só para quem abriu.
+  if (!ext.timer && (DEMO === null)) {
+    ext.timer = setInterval(() => {
+      if (!document.hidden && Date.now() >= FECHAMENTO_URNAS) carregarExterior();
+    }, 90000);
+  }
+});
+$("btExtTodos").addEventListener("click", () => { ext.todos = !ext.todos; pintaExterior(); });
 
 /* ---- estados, regiões, saldo, quanto falta ------------------------------ */
 let ordemEstados = "apurado";

@@ -177,6 +177,20 @@ export async function lerMunicipio(eleicao, uf, cd) {
   return { pl, pt, pctSecoes: num(s.pst), hora: doc.ht || "" };
 }
 
+/* Andamento de uma UF inteira, cidade a cidade — usado para o exterior, em
+ * que cada "município" é uma cidade com seção eleitoral fora do Brasil. */
+export async function lerAndamentoUF(eleicao, uf) {
+  const doc = await buscar(urlAndamento(eleicao, uf));
+  return (doc.abr || []).filter((a) => a.tpabr === "mun").map((a) => ({
+    cd: a.cdabr,
+    te: num(a.e && a.e.te),          // eleitores aptos
+    est: num(a.e && a.e.est),        // eleitores das seções já totalizadas
+    ts: num(a.s && a.s.ts),          // seções
+    st: num(a.s && a.s.st),          // seções totalizadas
+    fim: a.and === "f",
+  }));
+}
+
 export async function lerAndamento(eleicao) {
   const fracoes = new Map();
   const falhas = [];

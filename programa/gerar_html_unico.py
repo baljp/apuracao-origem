@@ -63,7 +63,7 @@ def main() -> int:
     # abriu o arquivo, com "pq is not defined" e a aba de pesquisas vazia. Por
     # isso a conferência no fim desta função é obrigatória.
     ponte = """
-const tse = { lerTudo, lerResultados, lerAndamento, lerMunicipio, ELEICAO_1T,
+const tse = { lerTudo, lerResultados, lerAndamento, lerMunicipio, lerAndamentoUF, ELEICAO_1T,
               ELEICAO_2T, UFS };
 const pq = { buscarSegundoTurno, buscarPrimeiroTurno, agregar, cruzarComTSE,
              REAL_1T };
