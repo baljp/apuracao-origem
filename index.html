@@ -1844,6 +1844,24 @@ function alinharFracoes(fracoes, totais) {
   }
 }
 
+/* Chance de vencer, só quando ela quer dizer alguma coisa.
+ * Com pouca apuração, o "99%" que o modelo calcula mede a coerência da conta,
+ * não a certeza do resultado — e um print disso circula sem contexto. Então:
+ * abaixo do mínimo de urnas apuradas, nada de chance; com a margem cruzando
+ * 50%, "indefinido"; depois disso, o número exato do modelo, com uma casa. */
+const MIN_CHANCE_BR = 30, MIN_CHANCE_EXT = 90;
+function textoChance(p, lo, hi, pct, minPct, onde) {
+  const n = (x) => x.split(" ")[0];
+  if (p == null) return { tipo: "nada", txt: "" };
+  if (!(pct >= minPct)) return { tipo: "espera",
+    txt: `A chance de vitória aparece a partir de ${minPct}% das urnas apuradas${onde ? " " + onde : ""}` };
+  if (lo != null && lo < 50 && hi > 50) return { tipo: "margem",
+    txt: `Dentro da margem de erro${onde ? " " + onde : ""}: ainda não dá para dizer quem vence` };
+  const q = Math.max(p, 1 - p), lid = n(p >= 0.5 ? nomes.pl : nomes.pt);
+  const v = q >= 0.995 ? "mais de 99,5" : (Math.trunc(q * 1000) / 10).toFixed(1).replace(".", ",");
+  return { tipo: "chance", lid, v, txt: `${lid}: chance de vencer${onde ? " " + onde : ""} de ${v}%` };
+}
+
 async function tick() {
   if (DEMO !== null) return tickDemo();
   // Aba em segundo plano não precisa de número novo: ninguém está vendo.
@@ -2068,20 +2086,15 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
   // Enquanto a disputa couber na margem, a página diz exatamente isso.
   const dentroDaMargem = r.faixaPl && r.faixaPl[0] < 50 && r.faixaPl[1] > 50;
 
-  if (r.pctApurado < 1) {
-    txt = "Apuração ainda muito inicial — abaixo de 1% a projeção é instável.";
-  } else if (dentroDaMargem) {
-    txt = "A diferença está dentro da margem de erro — ainda não dá para "
-        + "dizer quem ganhou.";
-  }
-  if (txt) {
+  const pS = pctSecoesTSE(r);
+  const C = textoChance(p, r.faixaPl && r.faixaPl[0], r.faixaPl && r.faixaPl[1], pS, MIN_CHANCE_BR, "");
+  if (pS < 1) txt = "Apuração ainda muito inicial — abaixo de 1% a projeção é instável.";
+  if (txt || C.tipo !== "chance") {
     $("probabilidade").className = "";
-    $("probabilidade").textContent = txt;
+    $("probabilidade").textContent = txt || C.txt;
   } else {
-    const lid = p >= 0.5 ? nomes.pl : nomes.pt;
-    const pc = Math.min(99, Math.max(50, Math.round(100 * Math.max(p, 1 - p))));
     $("probabilidade").className = "chance-br";
-    $("probabilidade").innerHTML = esc(lid.split(" ")[0]) + ": chance de vencer em <b>" + pc + "%</b>";
+    $("probabilidade").innerHTML = esc(C.lid) + ": chance de vencer de <b>" + C.v + "%</b>";
   }
 
   $("bruto").textContent = r.brutoPl == null ? "—" : n1(r.brutoPl) + "%";
@@ -2744,11 +2757,9 @@ function cardMarco(ctx, c) {
     c.lo != null ? `margem de 90%: ${n1(c.lo)}–${n1(c.hi)}%` : "");
   // chance de vencer, em destaque
   {
-    const margem = c.lo != null && c.lo < 50 && c.hi > 50;
-    const t = c.ch == null ? "" : c.pct < 1 ? "Abaixo de 1% apurado: projeção ainda instável"
-      : margem ? "Dentro da margem de erro: ainda não dá para dizer quem ganha"
-      : (c.ch >= 0.5 ? nomes.pl : nomes.pt).split(" ")[0] + ": chance de vencer em "
-        + Math.min(99, Math.max(50, Math.round(100 * Math.max(c.ch, 1 - c.ch)))) + "%";
+    const C = textoChance(c.ch, c.lo, c.hi, c.pct, MIN_CHANCE_BR, "");
+    const margem = C.tipo !== "chance";
+    const t = c.pct < 1 ? "Abaixo de 1% apurado: projeção ainda instável" : C.txt;
     if (t) {
       rr(ctx, 70, 1252, CW - 140, 64, 32); ctx.fillStyle = "rgba(242,181,68,.16)"; ctx.fill();
       ctx.lineWidth = 2.5; ctx.strokeStyle = "rgba(242,181,68,.75)"; ctx.stroke();
@@ -3355,8 +3366,9 @@ function textoCard(def) {
     return l.length ? "\n" + l.join("\n") : "";
   };
   if (def.tipo === "marco" || def.tipo === "virada") {
+    const C = textoChance(def.ch, def.lo, def.hi, def.pct, MIN_CHANCE_BR, "");
     const ch = def.pct < 1 ? "\n⚠️ Abaixo de 1% apurado a projeção ainda é instável"
-      : def.ch == null || (def.lo < 50 && def.hi > 50) ? "" : `\n🎯 Chance de vencer: ${(def.ch >= 0.5 ? nPl : nPt)} ${Math.min(99, Math.round(100 * Math.max(def.ch, 1 - def.ch)))}%`;
+      : C.tipo === "chance" ? `\n🎯 ${C.txt}` : C.txt ? `\n⏳ ${C.txt}` : "";
     return `🗳️ Apuração 2º turno · ${n2(def.pct)}% das urnas apuradas`
       + `\n✅ Apurado no TSE: ${nPl} ${n1(def.of)}% × ${nPt} ${n1(100 - def.of)}%`
       + `\n★ Projeção do algoritmo: ${nPl} ${n1(def.pr)}% × ${nPt} ${n1(100 - def.pr)}%` + ch
@@ -3998,7 +4010,9 @@ function projetarExterior() {
   // 1º turno do exterior inteiro, só entre os dois.
   let t1pl = 0, t1pt = 0;
   for (const cd of cds) { t1pl += EXT_1T[cd][0]; t1pt += EXT_1T[cd][1]; }
-  return { pPl: r.projecaoPl, lo: r.faixaPl[0], hi: r.faixaPl[1], chPl: r.probPl,
+  let stS = 0, tsS = 0;
+  for (const c of ext.cidades.values()) { stS += c.st || 0; tsS += c.ts || 0; }
+  return { pPl: r.projecaoPl, lo: r.faixaPl[0], hi: r.faixaPl[1], chPl: r.probPl, apuSec: tsS ? 100 * stS / tsS : 0,
     vPl: r.totalPl, vPt: r.totalPt, t1: 100 * t1pl / (t1pl + t1pt), apurado: r.pctApurado };
 }
 
@@ -4020,9 +4034,10 @@ function placarProjExterior(pr, nPl, nPt) {
     + `<div class="barra"><i style="width:${pr.pPl}%;background:linear-gradient(90deg,#1D4ED8,#60A5FA)"></i>`
     + `<i style="width:${100 - pr.pPl}%;background:linear-gradient(90deg,#F87171,#B91C1C)"></i></div>`
     + `<div class="meio"><span>50%</span></div>`
-    + (pr.lo < 50 && pr.hi > 50
-      ? `<div class="chance-ext">Dentro da margem de erro: ainda não dá para dizer quem vence no exterior</div>`
-      : `<div class="chance-ext">${lider}: chance de vencer <u>no exterior</u> em <b>${chTxt}</b></div>`)
+    + (() => { const C = textoChance(pr.chPl, pr.lo, pr.hi, pr.apuSec, MIN_CHANCE_EXT, "no exterior");
+      return C.tipo === "chance"
+        ? `<div class="chance-ext">${C.lid}: chance de vencer <u>no exterior</u> de <b>${C.v}%</b></div>`
+        : `<div class="chance-ext">${C.txt}</div>`; })()
     + `<div class="so-ext">🌎 Vale só para o exterior — não é a apuração nem a projeção do Brasil</div></div>`;
 }
 
@@ -4302,8 +4317,7 @@ $("btExtCompartilhar").addEventListener("click", () => {
       const lid = u.proj.pPl >= 50 ? nPl : nPt;
       const ch = u.proj.pPl >= 50 ? u.proj.chPl : 1 - u.proj.chPl;
       return [`Projeção só do exterior: ${nPl} ${n1(u.proj.pPl)}% × ${n1(100 - u.proj.pPl)}% ${nPt}`,
-        u.proj.lo < 50 && u.proj.hi > 50 ? "Dentro da margem de erro: ainda indefinido no exterior"
-          : `${lid}: chance de vencer no exterior em ${Math.min(99, Math.max(50, Math.round(100 * ch)))}%`];
+        textoChance(u.proj.chPl, u.proj.lo, u.proj.hi, u.proj.apuSec, MIN_CHANCE_EXT, "no exterior").txt];
     })() : "",
     paises: u.proj ? paises.slice(0, 4) : paises });
 });
@@ -5741,7 +5755,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=3dcfea1ac8").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=9b5808d6d6").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
