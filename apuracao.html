@@ -839,6 +839,13 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 .vant .vl .seta{font-size:22px;color:#F2B544;font-weight:900}
 .vant .vf{font-size:12.5px;font-weight:650;color:rgba(255,255,255,.75);margin-top:6px;line-height:1.45}
 .vant .vf b{color:#FFC94D}
+.proj-ext .vt{font-size:13px}
+.proj-ext .vl span{font-size:13.5px}
+.proj-ext .vl b{font-size:clamp(22px,6.4vw,28px)}
+.proj-ext .vf{font-size:14px}
+.chance-ext{margin-top:8px;padding:9px 12px;border-radius:10px;background:rgba(242,181,68,.14);
+  border:1px solid rgba(242,181,68,.4);font-size:15.5px;font-weight:800;color:#fff}
+.chance-ext b{font-size:clamp(20px,5.8vw,24px);font-weight:900;color:#FFC94D}
 .pais-sh{grid-column:1 / -1;justify-self:end;font:inherit;font-size:12.5px;font-weight:850;cursor:pointer;
   color:var(--texto);background:var(--superficie);border:1px solid var(--linha-forte);border-radius:999px;padding:6px 12px}
 .pais-sh:hover{border-color:var(--texto)}
@@ -3701,10 +3708,12 @@ function cardExterior(ctx, d) {
     y += 90;
   }
   if (d.proj) {
-    rr(ctx, 70, y - 50, CW - 140, 84, 22); ctx.fillStyle = "rgba(251,248,241,.10)"; ctx.fill();
+    y += 16;
+    rr(ctx, 70, y - 54, CW - 140, 140, 22); ctx.fillStyle = "rgba(251,248,241,.10)"; ctx.fill();
     ctx.lineWidth = 2; ctx.strokeStyle = "rgba(251,248,241,.35)"; ctx.stroke();
-    txCabe(ctx, d.proj, CW / 2, y + 4, 30, 850, MARFIM, CW - 180, "center");
-    y += 90;
+    txCabe(ctx, d.proj[0], CW / 2, y + 2, 38, 850, MARFIM, CW - 180, "center");
+    txCabe(ctx, d.proj[1], CW / 2, y + 58, 42, 900, OURO, CW - 180, "center");
+    y += 146;
   }
   tx(ctx, "PAÍSES COM MAIS ELEITORES", 100, y, 26, 900, OURO, "left", 5);
   y += 12;
@@ -3964,7 +3973,7 @@ function textoCard(def) {
   if (def.tipo === "exterior" || def.tipo === "pais") {
     return `${def.tipo === "pais" ? def.nome : "Exterior"}: ${nPl} ${n1(def.pPl)}% × ${nPt} `
       + `${n1(100 - def.pPl)}% (${def.oficial ? "TSE" : "parcial, boletins de urna"}). `
-      + (def.proj ? def.proj + " (algoritmo, só exterior). " : "")
+      + (def.proj ? def.proj.join(" · ") + " (algoritmo, só exterior). " : "")
       + `Ao vivo: https://${SITE}/ · ${PERFIL}`;
   }
   return `Apuração 2026 ao vivo, com projeção: https://${SITE}/ · ${PERFIL}`;
@@ -4517,11 +4526,11 @@ function blocoProjExterior(pr, nPl, nPt) {
   const frase = l1 !== l2
     ? `<b>virou</b>: no 1º turno ${l1} venceu no exterior por ${n1(Math.abs(m1))} pontos; a projeção dá ${l2} por ${n1(Math.abs(m2))}`
     : `a vantagem de ${l2} no exterior <b>${mud >= 0 ? "aumenta" : "diminui"} ${n1(Math.abs(mud))} pontos</b> (${n1(Math.abs(m1))} → ${n1(Math.abs(m2))})`;
-  const chTxt = ch >= 0.995 ? "mais de 99%" : ch <= 0.5 ? "50%" : Math.round(100 * ch) + "%";
+  const chTxt = Math.min(99, Math.max(50, Math.round(100 * ch))) + "%";
   return `<div class="vant proj-ext"><div class="vt">Projeção do algoritmo · exterior inteiro, no fim</div>`
     + `<div class="vl"><span>${nPl}<b>${n1(pr.pPl)}%</b></span><span class="seta">×</span>`
     + `<span>${nPt}<b>${n1(100 - pr.pPl)}%</b></span>`
-    + `<span>chance de ${lider} vencer no exterior<b>${chTxt}</b></span></div>`
+    + `</div><div class="chance-ext">${lider}: chance de vencer em <b>${chTxt}</b></div>`
     + `<div class="vf">Margem de 90%: ${nPl} entre <b>${n1(pr.lo)}% e ${n1(pr.hi)}%</b>. `
     + `Comparado ao 1º turno (exterior inteiro, só entre os dois): ${frase}. `
     + `É o mesmo algoritmo da projeção do Brasil, aplicado só ao exterior: corrige o fato de os `
@@ -4736,8 +4745,8 @@ $("btExtCompartilhar").addEventListener("click", () => {
       const nPl = nomes.pl.split(" ")[0], nPt = nomes.pt.split(" ")[0];
       const lid = u.proj.pPl >= 50 ? nPl : nPt;
       const ch = u.proj.pPl >= 50 ? u.proj.chPl : 1 - u.proj.chPl;
-      return `Projeção no fim: ${nPl} ${n1(u.proj.pPl)}% × ${n1(100 - u.proj.pPl)}% ${nPt}`
-        + ` · chance de ${lid}: ${ch >= 0.995 ? ">99" : Math.round(100 * ch)}%`;
+      return [`Projeção no fim: ${nPl} ${n1(u.proj.pPl)}% × ${n1(100 - u.proj.pPl)}% ${nPt}`,
+        `${lid}: chance de vencer em ${Math.min(99, Math.max(50, Math.round(100 * ch)))}%`];
     })() : "",
     paises: u.proj ? paises.slice(0, 6) : paises });
 });
