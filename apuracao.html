@@ -3118,13 +3118,12 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
     $("tseAgPL").textContent = n1(bp) + "%";
     $("tseAgPT").textContent = n1(100 - bp) + "%";
     $("tseAgNPL").textContent = curtoPl; $("tseAgNPT").textContent = curtoPt;
-    $("tseAgApu").textContent = n1(BR.pst) + "% das seções";
+    $("tseAgApu").textContent = n1(BR.pst) + "% das urnas";
     $("tseAgBPL").style.cssText = "width:" + bp + "%;background:var(--pl-vivo)";
     $("tseAgBPT").style.cssText = "width:" + (100 - bp) + "%;background:var(--pt-vivo)";
     const fr = BR.pl + BR.pt ? 100 * (r.votosApurados || 0) / (BR.pl + BR.pt) : 0;
     const ml = (v) => Math.round(v).toLocaleString("pt-BR");
-    $("tseAg1t").innerHTML = `${ml(BR.pl)} × ${ml(BR.pt)} votos · igual ao aplicativo do TSE. `
-      + `O TSE ainda não publicou o detalhe de todos os estados: a projeção usa os ${n1(fr)}% dos votos já detalhados.`;
+    $("tseAg1t").innerHTML = `${ml(BR.pl)} × ${ml(BR.pt)} votos`;
   } else if (r.brutoPl != null) {
     $("tseAgPL").textContent = n1(r.brutoPl) + "%";
     $("tseAgPT").textContent = n1(100 - r.brutoPl) + "%";
@@ -6460,7 +6459,7 @@ function atualizarFaixa(r, comecou) {
   faixa.className = "status vivo";
   $("statusTitulo").textContent = "Ao vivo · apuração oficial do TSE";
   $("statusTexto").innerHTML =
-    "<strong>" + n1(r.pctApurado) + "% apurado.</strong> Votos oficiais do TSE, "
+    "<strong>" + n1(brasilAFrente(r) ? brasilAFrente(r).pst : r.pctApurado) + "% apurado.</strong> Votos oficiais do TSE, "
     + "com a projeção de onde a conta deve terminar.";
 }
 
