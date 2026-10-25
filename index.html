@@ -837,6 +837,9 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 .vant .vl .seta{font-size:22px;color:#F2B544;font-weight:900}
 .vant .vf{font-size:12.5px;font-weight:650;color:rgba(255,255,255,.75);margin-top:6px;line-height:1.45}
 .vant .vf b{color:#FFC94D}
+.pais-sh{grid-column:1 / -1;justify-self:end;font:inherit;font-size:12.5px;font-weight:850;cursor:pointer;
+  color:var(--texto);background:var(--superficie);border:1px solid var(--linha-forte);border-radius:999px;padding:6px 12px}
+.pais-sh:hover{border-color:var(--texto)}
 </style>
 </head>
 <body>
@@ -1088,6 +1091,7 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
         de Flávio e Lula em cada país onde há seção eleitoral.</div>
     </div>
     <button class="bt-ouro" id="btExtCarregar" style="margin-top:14px">Ver votos do exterior</button>
+    <button class="bt-ouro" id="btExtCompartilhar" style="margin-top:14px" hidden>Compartilhar no Instagram / WhatsApp</button>
     <div class="faixa ext-nota" id="extNota"></div>
   </div>
 
@@ -2528,6 +2532,65 @@ function cardPesquisas(ctx, d) {
   rodape(ctx, "Siga " + PERFIL, "Pesquisas de intenção de voto, não resultado · registradas no TSE");
 }
 
+function cardExterior(ctx, d) {
+  fundo(ctx, null, 300);
+  marca(ctx, "EXTERIOR");
+  tx(ctx, "Votos no exterior", CW / 2, 290, 96, 700, MARFIM, "center", 0, SLAB);
+  tx(ctx, d.sub, CW / 2, 352, 32, 800, OURO, "center");
+  blocoDuelo(ctx, 430, 360, d.oficial ? "BRASILEIROS NO EXTERIOR · TSE" : "PARCIAL · BOLETINS DE URNA",
+    d.pPl, true, d.votos);
+  let y = 880;
+  if (d.vant) {
+    rr(ctx, 70, y - 50, CW - 140, 84, 22); ctx.fillStyle = "rgba(242,181,68,.12)"; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = "rgba(242,181,68,.45)"; ctx.stroke();
+    txCabe(ctx, d.vant, CW / 2, y + 4, 32, 850, MARFIM, CW - 180, "center");
+    y += 90;
+  }
+  tx(ctx, "PAÍSES COM MAIS ELEITORES", 100, y, 26, 900, OURO, "left", 5);
+  y += 12;
+  for (const p of d.paises) {
+    y += 74;
+    rr(ctx, 70, y - 50, CW - 140, 64, 18); ctx.fillStyle = "rgba(251,248,241,.06)"; ctx.fill();
+    tx(ctx, p.bandeira, 100, y - 2, 38, 400, "#fff");
+    txCabe(ctx, p.nome, 160, y - 4, 32, 900, MARFIM, 330);
+    rr(ctx, 520, y - 26, 200, 12, 6); ctx.fillStyle = "rgba(251,248,241,.12)"; ctx.fill();
+    ctx.save(); rr(ctx, 520, y - 26, 200, 12, 6); ctx.clip();
+    ctx.fillStyle = AZUL; ctx.fillRect(520, y - 26, 200 * p.pPl / 100 - 1, 12);
+    ctx.fillStyle = VERM; ctx.fillRect(520 + 200 * p.pPl / 100 + 1, y - 26, 200, 12);
+    ctx.restore();
+    const lPl = p.pPl >= 50;
+    tx(ctx, (lPl ? nomes.pl : nomes.pt).split(" ")[0] + " " + n1(lPl ? p.pPl : 100 - p.pPl) + "%",
+      CW - 100, y - 4, 32, 900, lPl ? "#A9CAFF" : "#FFADA6", "right");
+  }
+  rodape(ctx, "Siga " + PERFIL, d.oficial ? "Totalização oficial do TSE"
+    : "Parcial: boletins de urna publicados pelo TSE · não é a totalização");
+}
+
+function cardPais(ctx, d) {
+  fundo(ctx, null, 340);
+  marca(ctx, "EXTERIOR");
+  tx(ctx, d.bandeira, CW / 2, 330, 150, 400, "#fff", "center");
+  txCabe(ctx, d.nome, CW / 2, 470, 120, 700, MARFIM, CW - 160, "center", SLAB);
+  tx(ctx, d.sub, CW / 2, 530, 32, 800, "rgba(251,248,241,.72)", "center");
+  blocoDuelo(ctx, 610, 370, d.oficial ? "VOTOS DOS BRASILEIROS · TSE" : "PARCIAL · BOLETINS DE URNA",
+    d.pPl, true, d.votos);
+  if (d.cmp) {
+    let y = 1080;
+    tx(ctx, "EM RELAÇÃO AO 1º TURNO", CW / 2, y, 26, 900, OURO, "center", 5);
+    const caixa = (x, nome, cor, dd, antes) => {
+      rr(ctx, x, y + 26, 430, 150, 26); ctx.fillStyle = "rgba(251,248,241,.07)"; ctx.fill();
+      tx(ctx, nome, x + 30, y + 72, 30, 900, cor);
+      tx(ctx, (dd >= 0 ? "▲ +" : "▼ −") + n1(Math.abs(dd)), x + 30, y + 140, 62, 900, dd >= 0 ? "#6EE7B7" : "#FCA5A5");
+      tx(ctx, "era " + n1(antes) + "%", x + 400, y + 140, 28, 800, "rgba(251,248,241,.6)", "right");
+    };
+    caixa(80, nomes.pl.split(" ")[0], "#A9CAFF", d.cmp[0], d.cmp[1]);
+    caixa(570, nomes.pt.split(" ")[0], "#FFADA6", d.cmp[2], d.cmp[3]);
+    if (d.vant) txCabe(ctx, d.vant, CW / 2, y + 250, 30, 800, MARFIM, CW - 160, "center");
+  }
+  rodape(ctx, "Siga " + PERFIL, d.oficial ? "Totalização oficial do TSE"
+    : "Parcial: boletins de urna publicados pelo TSE · não é a totalização");
+}
+
 function cardAuditoria(ctx) {
   fundo(ctx, "rgba(52,211,153,.12)");
   marca(ctx, "AUDITORIA");
@@ -2573,6 +2636,8 @@ async function desenharCard(def) {
   else if (def.tipo === "espera") cardEspera(ctx, def);
   else if (def.tipo === "auditoria") cardAuditoria(ctx);
   else if (def.tipo === "pesquisas") cardPesquisas(ctx, def);
+  else if (def.tipo === "exterior") cardExterior(ctx, def);
+  else if (def.tipo === "pais") cardPais(ctx, def);
   return cv;
 }
 
@@ -2677,6 +2742,11 @@ function textoCard(def) {
   if (def.tipo === "marco" || def.tipo === "virada") {
     return `${n1(def.pct)}% apurado · Oficial TSE: ${nPl} ${n1(def.of)}% × ${nPt} ${n1(100 - def.of)}%`
       + ` · Projeção: ${nPl} ${n1(def.pr)}% × ${nPt} ${n1(100 - def.pr)}%. `
+      + `Ao vivo: https://${SITE}/ · ${PERFIL}`;
+  }
+  if (def.tipo === "exterior" || def.tipo === "pais") {
+    return `${def.tipo === "pais" ? def.nome : "Exterior"}: ${nPl} ${n1(def.pPl)}% × ${nPt} `
+      + `${n1(100 - def.pPl)}% (${def.oficial ? "TSE" : "parcial, boletins de urna"}). `
       + `Ao vivo: https://${SITE}/ · ${PERFIL}`;
   }
   return `Apuração 2026 ao vivo, com projeção: https://${SITE}/ · ${PERFIL}`;
@@ -3235,6 +3305,11 @@ function pintaExterior() {
         + `candidatos; no 2º os votos deles se dividem entre os dois — por isso os dois costumam subir.</div></div>`
       : "");
 
+  // Guardado para os cards de compartilhar.
+  ext.ultimo = { lista, pl, pt, te, ts, st, t1pl, t1pt, t1v, compara,
+    hora: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }).replace(":", "h") };
+  $("btExtCompartilhar").hidden = !v;
+
   // Lista por país.
   $("cartaoExtPaises").hidden = false;
   $("extConta").textContent = comVoto.length + " de " + lista.length + " países com voto";
@@ -3269,7 +3344,8 @@ function pintaExterior() {
           + `<span class="b">${mil(p.pt)} · ${n1(100 - pp)}% ${nPt}</span></div>`
           + (compara && p.t1v
             ? `<div class="cmp">${chip("pl", nPl, pp, 100 * p.t1pl / p.t1v)}`
-              + `${chip("pt", nPt, 100 - pp, 100 * p.t1pt / p.t1v)}</div>` : ""))
+              + `${chip("pt", nPt, 100 - pp, 100 * p.t1pt / p.t1v)}</div>` : "")
+          + `<button class="pais-sh" data-pais="${esc(p.nome)}">↗ Compartilhar ${esc(p.nome)}</button>`)
       + `</div>`;
   }).join("") || '<div class="vazio">Nenhum país nesse filtro ainda.</div>';
   $("btExtTodos").hidden = total <= 12;
@@ -3311,6 +3387,43 @@ if ("IntersectionObserver" in window) {
   }, { rootMargin: "200px" });
   obs.observe($("cartaoExterior"));
 }
+
+/* Cards do exterior: o total e cada país. */
+const vantTexto = (pl2, pt2, pl1, pt1) => {
+  if (!(pl1 + pt1 > 0) || !(pl2 + pt2 > 0)) return "";
+  const m1 = 100 * (pl1 - pt1) / (pl1 + pt1), m2 = 100 * (pl2 - pt2) / (pl2 + pt2);
+  const n = (m) => (m >= 0 ? nomes.pl : nomes.pt).split(" ")[0];
+  if (n(m1) !== n(m2)) return `Virou: no 1º turno ${n(m1)} liderava; agora ${n(m2)} +${n1(Math.abs(m2))}`;
+  const d = Math.abs(m2) - Math.abs(m1);
+  return `Vantagem de ${n(m2)}: ${n1(Math.abs(m1))} → ${n1(Math.abs(m2))} pontos (${d >= 0 ? "▲" : "▼"} ${n1(Math.abs(d))})`;
+};
+$("btExtCompartilhar").addEventListener("click", () => {
+  const u = ext.ultimo;
+  if (!u || !(u.pl + u.pt)) return;
+  const mil = (v) => Math.round(v).toLocaleString("pt-BR");
+  const paises = u.lista.filter((p) => p.pl + p.pt > 0).sort((a, b) => b.te - a.te).slice(0, 7)
+    .map((p) => ({ nome: p.nome, bandeira: bandeira(p.nome), pPl: 100 * p.pl / (p.pl + p.pt) }));
+  abrirCard({ tipo: "exterior", oficial: ext.modo !== "bu", pPl: 100 * u.pl / (u.pl + u.pt),
+    votos: `${mil(u.pl)} × ${mil(u.pt)} votos`,
+    sub: (ext.modo === "bu" ? `${mil(u.st)} de ${mil(u.ts)} urnas com boletim` : `${n1(u.ts ? 100 * u.st / u.ts : 0)}% das urnas apuradas`)
+      + ` · ${u.hora}`,
+    vant: u.compara ? vantTexto(u.pl, u.pt, u.t1pl, u.t1pt) : "", paises });
+});
+$("extLista").addEventListener("click", (ev) => {
+  const b = ev.target.closest(".pais-sh");
+  if (!b || !ext.ultimo) return;
+  const p = ext.ultimo.lista.find((x) => x.nome === b.dataset.pais);
+  if (!p || !(p.pl + p.pt)) return;
+  const mil = (v) => Math.round(v).toLocaleString("pt-BR");
+  const v = p.pl + p.pt, pPl = 100 * p.pl / v;
+  abrirCard({ tipo: "pais", nome: p.nome, bandeira: bandeira(p.nome), oficial: ext.modo !== "bu", pPl,
+    votos: `${mil(p.pl)} × ${mil(p.pt)} votos`,
+    sub: `${mil(p.te)} eleitores · ` + (ext.modo === "bu" ? `${p.st} de ${p.ts} urnas com boletim`
+      : `${n1(p.ts ? 100 * p.st / p.ts : 0)}% apurado`) + ` · ${ext.ultimo.hora}`,
+    cmp: ext.ultimo.compara && p.t1v ? [pPl - 100 * p.t1pl / p.t1v, 100 * p.t1pl / p.t1v,
+      (100 - pPl) - 100 * p.t1pt / p.t1v, 100 * p.t1pt / p.t1v] : null,
+    vant: ext.ultimo.compara ? vantTexto(p.pl, p.pt, p.t1pl, p.t1pt) : "" });
+});
 
 /* ---- estados, regiões, saldo, quanto falta ------------------------------ */
 let ordemEstados = "apurado";
@@ -4385,7 +4498,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=2a15cb365c").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=395fc82aa3").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
