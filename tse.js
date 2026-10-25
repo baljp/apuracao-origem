@@ -101,6 +101,7 @@ export async function lerResultados(eleicao) {
   const totais = {
     brancos: 0, nulos: 0, abstencao: 0, comparecimento: 0,
     eleitorado: 0, secoes: 0, secoesApuradas: 0, validos: 0,
+    porUf: {},   // uf -> [abstenção, comparecimento, brancos+nulos] do que já foi apurado
   };
   // Os 54 arquivos não são lidos no mesmo instante, e o TSE não publica todos
   // os estados ao mesmo tempo: o conjunto é um mosaico de momentos.
@@ -155,6 +156,7 @@ export async function lerResultados(eleicao) {
       totais.eleitorado += num(e.te);
       totais.secoes += num(s.ts);
       totais.secoesApuradas += num(s.st);
+      totais.porUf[uf] = [num(e.a), num(e.c), num(v.vb) + num(v.tvn)];
       // Horário em que o TSE gerou o arquivo — mais fiel que a hora local
       // de quem está olhando.
       if (doc.ht) {

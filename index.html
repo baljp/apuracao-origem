@@ -51,7 +51,7 @@
 <link rel="preload" href="./fonte.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="./fonte.css"></noscript>
 <link rel="modulepreload" href="./modelo.js?v=f6c81420d6">
-<link rel="modulepreload" href="./tse.js?v=8cf8d6ed3f">
+<link rel="modulepreload" href="./tse.js?v=0f2af1c9f4">
 <link rel="modulepreload" href="./pesquisas.js?v=e13eced4df">
 <link rel="preload" href="./base.json" as="fetch" crossorigin>
 <style>
@@ -337,6 +337,22 @@ h2{
 .proj-placar .barra{margin-top:14px;height:13px}
 .proj-placar .faixa{font-size:12px!important}
 .compara{display:none!important}
+.tse-topo{margin:0 0 14px;padding:13px 14px;background:rgba(255,255,255,.08)}
+.tse-topo .t{font-size:12.5px}
+.tse-topo .n{align-items:flex-end}
+.tse-topo .n span{display:flex;flex-direction:column}
+.tse-topo .n span:last-child{text-align:right}
+.tse-topo .n small{font-size:13px;margin:0 0 2px;color:rgba(255,255,255,.8)}
+.tse-topo .n b{font-size:clamp(36px,11vw,64px);line-height:.95;letter-spacing:-.035em}
+.tse-topo .mini{height:12px;margin-top:10px}
+.t1t{font-size:12px;font-weight:750;color:rgba(255,255,255,.68);margin-top:8px;line-height:1.4}
+.t1t b.a{color:#93BBFF} .t1t b.b{color:#FFA39C}
+.proj-br{padding:13px 13px 12px;border-radius:18px;
+  background:linear-gradient(160deg,rgba(242,181,68,.14),rgba(255,255,255,.04));border:1.5px solid rgba(242,181,68,.6)}
+.proj-br .pct{font-size:clamp(30px,9.4vw,52px)}
+.proj-br .barra{margin-top:14px;height:13px}
+.cmp1t{font-size:11.5px;font-weight:750;color:var(--fraco);margin-top:4px}
+.cmp1t b.pior{color:#DC2626} .cmp1t b.melhor{color:#059669}
 /* comparação oficial × projeção, dentro do placar */
 .compara{margin-top:16px;display:grid;gap:9px}
 .compara .linha{display:grid;grid-template-columns:96px 1fr 112px;gap:10px;align-items:center}
@@ -848,7 +864,7 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 .ext-andamento .progresso i{display:block;height:100%;background:linear-gradient(90deg,#10B981,#6EE7B7);border-radius:999px}
 .ext-andamento .l{font-size:12px;font-weight:750;color:rgba(255,255,255,.65);margin-top:5px}
 .pct-apu{color:#059669;font-weight:900}
-.reg-apu{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:11.5px;font-weight:800;color:var(--fraco)}
+.reg-apu{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:5px;font-size:11.5px;font-weight:800;color:var(--fraco)}
 .reg-apu b{color:#059669;font-weight:900;white-space:nowrap}
 .reg-apu .progresso{flex:1;height:7px;border-radius:999px;background:rgba(127,127,127,.15);overflow:hidden;min-width:40px}
 .reg-apu .progresso i{display:block;height:100%;background:linear-gradient(90deg,#10B981,#6EE7B7)}
@@ -857,6 +873,9 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 .regiao .globo{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:26px;
   background:linear-gradient(135deg,rgba(242,181,68,.22),rgba(242,181,68,.06));border:1px solid rgba(242,181,68,.4)}
 .regiao .p{font-size:16.5px}
+.pais.regiao{grid-template-columns:46px minmax(0,1fr) auto}
+.pais.regiao>div{min-width:0}
+.reg-pp span{white-space:normal;max-width:100%}
 .st-pais.esp{background:rgba(120,120,120,.12);color:var(--fraco);border:1px solid rgba(120,120,120,.3)}
 .reg-paises{grid-column:1 / -1;margin-top:2px}
 .reg-paises summary{cursor:pointer;font-size:12.5px;font-weight:850;color:var(--texto);list-style:none;
@@ -1047,6 +1066,12 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
       </div>
       <div id="previaPesquisas">Aguardando o início da apuração.</div></div>
     <div id="placar" style="display:none">
+      <div class="tse-agora tse-topo"><div class="t">Apurado no TSE agora<em id="tseAgApu"></em></div>
+        <div class="n"><span><small id="tseAgNPL"></small><b class="a" id="tseAgPL">—</b></span>
+          <span><small id="tseAgNPT"></small><b class="b" id="tseAgPT">—</b></span></div>
+        <div class="mini"><i id="tseAgBPL"></i><i id="tseAgBPT"></i></div>
+        <div class="t1t" id="tseAg1t"></div></div>
+      <div class="proj-br">
       <div class="selo-proj"><span class="est">★</span><div><b>Projeção do algoritmo</b>
         <span>onde a apuração do Brasil deve terminar</span></div></div>
       <div class="placar" style="margin-top:4px">
@@ -1074,10 +1099,7 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
           <div class="mini"><i id="cmpPrPL"></i><i id="cmpPrPT"></i></div>
           <span class="v" id="cmpPrV">—</span></div>
       </div>
-      <div class="tse-agora"><div class="t">Apurado no TSE agora<em id="tseAgApu"></em></div>
-        <div class="n"><span><b class="a" id="tseAgPL">—</b><small id="tseAgNPL"></small></span>
-          <span><small id="tseAgNPT"></small><b class="b" id="tseAgPT">—</b></span></div>
-        <div class="mini"><i id="tseAgBPL"></i><i id="tseAgBPT"></i></div></div>
+      </div>
       <div class="oqueE"><b>Oficial TSE</b> é o que já foi contado.
         <b>Projeção</b> é onde a conta deve terminar, porque cada região
         apura num ritmo diferente.</div>
@@ -1125,11 +1147,14 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 
   <div class="blocos" id="cartaoEleitorado" style="display:none">
     <div class="bloco-num"><div class="k"><i></i>Comparecimento</div>
-      <div class="r" id="comparecimento">—</div><div class="l">dos eleitores votaram</div></div>
+      <div class="r" id="comparecimento">—</div><div class="l">dos eleitores votaram</div>
+      <div class="cmp1t" id="cmpComp"></div></div>
     <div class="bloco-num"><div class="k"><i></i>Abstenção</div>
-      <div class="r" id="abstencao">—</div><div class="l">não foram votar</div></div>
+      <div class="r" id="abstencao">—</div><div class="l">não foram votar</div>
+      <div class="cmp1t" id="cmpAbst"></div></div>
     <div class="bloco-num"><div class="k"><i></i>Brancos e nulos</div>
-      <div class="r" id="brancosNulos">—</div><div class="l">de quem votou</div></div>
+      <div class="r" id="brancosNulos">—</div><div class="l">de quem votou (soma)</div>
+      <div class="cmp1t" id="cmpBn"></div></div>
     <div class="bloco-num"><div class="k"><i></i>Votos válidos</div>
       <div class="r" id="validosTot">—</div><div class="l">contados até agora</div></div>
   </div>
@@ -1531,7 +1556,7 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 
 <script type="module">
 import { Modelo } from "./modelo.js?v=f6c81420d6";
-import * as tse from "./tse.js?v=8cf8d6ed3f";
+import * as tse from "./tse.js?v=0f2af1c9f4";
 import * as pq from "./pesquisas.js?v=e13eced4df";
 
 /* Ritmo de atualização.
@@ -1576,6 +1601,9 @@ const DEMO = (() => {
  * (Os modos de teste — ?turno=1 e ?demo=N — continuam livres, porque leem
  * dados de uma eleição que já terminou.)
  */
+/* 1º turno por UF: [abstenção, comparecimento, brancos+nulos] (TSE, eleição 6257). */
+const T1_UF = {"ac":[125412,488330,19264],"al":[503698,1938428,119572],"am":[564062,2234549,63786],"ap":[100426,476562,11704],"ba":[2259151,9053601,493310],"ce":[1086074,5910471,292657],"df":[426924,1831396,58588],"es":[639368,2352282,101204],"go":[1109003,3971587,143764],"ma":[1022772,4160343,149904],"mg":[3735098,12637274,661039],"ms":[483210,1541220,50942],"mt":[585668,2052133,58845],"pa":[1195893,5066504,203332],"pb":[564543,2683988,170241],"pe":[1312388,5911062,310045],"pi":[463875,2240883,94489],"pr":[1772200,6841457,256214],"rj":[2997846,9859802,490102],"rn":[488812,2171013,99115],"ro":[274813,991080,23021],"rr":[68749,332772,7227],"rs":[1819642,6702903,279857],"sc":[1086492,4648159,147262],"se":[301053,1439082,74886],"sp":[7690900,26431992,1549044],"to":[216827,965196,34749],"zz":[574345,341766,10884]};
+let ultimoComp = null, ultimoT1 = null;
 const ABERTURA = Date.UTC(2026, 9, 25, 19, 55);        // 16h55 de Brasília
 const FECHAMENTO_URNAS = Date.UTC(2026, 9, 25, 20, 0); // 17h00 de Brasília
 
@@ -1922,6 +1950,23 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
     $(idV).textContent = n1(vPl) + " × " + n1(100 - vPl);
   };
   duelo("cmpOfPL", "cmpOfPT", "cmpOfV", r.brutoPl);
+  // O 1º turno nas MESMAS urnas que já foram apuradas agora (só entre os
+  // dois): a régua para ver se cada um está melhor ou pior que em outubro.
+  ultimoT1 = null;
+  try {
+    let a = 0, b = 0;
+    for (let i = 0; i < modelo.n; i++) {
+      const f = modelo.fracao[i]; if (!(f > 0)) continue;
+      const v = f * modelo.validosBase[i], sh = 1 / (1 + Math.exp(-modelo.baseLogit[i]));
+      a += v * sh; b += v * (1 - sh);
+    }
+    if (a + b > 0) ultimoT1 = 100 * a / (a + b);
+  } catch {}
+  if (ultimoT1 != null && r.brutoPl != null) {
+    const d = r.brutoPl - ultimoT1;
+    $("tseAg1t").innerHTML = `1º turno nessas mesmas urnas: ${curtoPl} ${n1(ultimoT1)}% × ${n1(100 - ultimoT1)}% ${curtoPt}`
+      + ` · <b class="${d >= 0 ? "a" : "b"}">${d >= 0 ? curtoPl + " ▲ +" + n1(d) : curtoPt + " ▲ +" + n1(-d)}</b>`;
+  }
   if (r.brutoPl != null) {
     $("tseAgPL").textContent = n1(r.brutoPl) + "%";
     $("tseAgPT").textContent = n1(100 - r.brutoPl) + "%";
@@ -1991,12 +2036,37 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
 
   // Comparecimento, abstenção, brancos e nulos — que o TSE publica e muita
   // gente procura numa noite de apuração.
-  if (totais && totais.eleitorado > 0) {
+  // O denominador é o eleitorado das seções JÁ apuradas (quem votou + quem
+  // faltou nelas). Dividir pelo eleitorado inteiro do país faria a abstenção
+  // aparecer como 6% com 30% apurado.
+  const apto = totais ? totais.comparecimento + totais.abstencao : 0;
+  ultimoComp = null;
+  if (totais && apto > 0) {
     $("cartaoEleitorado").style.display = "";
-    $("comparecimento").textContent = pct(totais.comparecimento, totais.eleitorado);
-    $("abstencao").textContent = pct(totais.abstencao, totais.eleitorado);
+    $("comparecimento").textContent = pct(totais.comparecimento, apto);
+    $("abstencao").textContent = pct(totais.abstencao, apto);
     const bn = totais.brancos + totais.nulos;
     $("brancosNulos").textContent = pct(bn, totais.comparecimento);
+    // 1º turno no mesmo momento: a taxa de cada estado no 1º turno, pesada
+    // pelo quanto de cada estado já foi apurado agora.
+    let eA = 0, eBn = 0;
+    for (const [uf, x] of Object.entries(totais.porUf || {})) {
+      const b = T1_UF[uf]; if (!b) continue;
+      eA += (x[0] + x[1]) * b[0] / (b[0] + b[1]);
+      eBn += x[1] * b[2] / b[1];
+    }
+    const abst = 100 * totais.abstencao / apto, abst1 = 100 * eA / apto;
+    const bnP = totais.comparecimento ? 100 * bn / totais.comparecimento : 0;
+    const bn1 = totais.comparecimento ? 100 * eBn / totais.comparecimento : 0;
+    const linha = (agora, antes, ruimSobe) => {
+      const d = agora - antes;
+      return `1º turno: ${n1(antes)}% · <b class="${(d >= 0) === ruimSobe ? "pior" : "melhor"}">${d >= 0 ? "▲ +" : "▼ −"}${n1(Math.abs(d))}</b>`;
+    };
+    const tem = eA > 0 && eBn > 0;
+    $("cmpAbst").innerHTML = tem ? linha(abst, abst1, true) : "";
+    $("cmpBn").innerHTML = tem ? linha(bnP, bn1, true) : "";
+    $("cmpComp").innerHTML = tem ? linha(100 - abst, 100 - abst1, false) : "";
+    ultimoComp = tem ? { abst, abst1, bn: bnP, bn1 } : null;
     $("brancosNulos").title = mil(totais.brancos) + " brancos e "
       + mil(totais.nulos) + " nulos";
     $("validosTot").textContent = totais.validos > 0 ? mil(totais.validos) : "—";
@@ -2304,6 +2374,9 @@ function fotoDoMomento(r, hora, vPl, vPt, tipo, k) {
     ch: r.probPl == null ? null : +r.probPl.toFixed(3),
     vPl: Math.round(vPl), vPt: Math.round(vPt),
     reg: regioesDe(r),
+    t1: ultimoT1 == null ? null : +ultimoT1.toFixed(2),
+    comp: ultimoComp ? { abst: +ultimoComp.abst.toFixed(2), abst1: +ultimoComp.abst1.toFixed(2),
+      bn: +ultimoComp.bn.toFixed(2), bn1: +ultimoComp.bn1.toFixed(2) } : null,
   };
 }
 
@@ -2588,8 +2661,16 @@ function cardMarco(ctx, c) {
       txCabe(ctx, t, CW / 2, 1315, margem ? 28 : 38, 900, OURO, CW - 180, "center");
     }
   }
+  // 1º turno no mesmo momento, abstenção e brancos+nulos: uma linha discreta
+  if (c.t1 != null || c.comp) {
+    const pts = [];
+    if (c.t1 != null) pts.push(`1º turno nas mesmas urnas: ${nomes.pl.split(" ")[0]} ${n1(c.t1)}%`);
+    if (c.comp) pts.push(`abstenção ${n1(c.comp.abst)}% (1º t. ${n1(c.comp.abst1)}%)`,
+      `brancos+nulos ${n1(c.comp.bn)}% (1º t. ${n1(c.comp.bn1)}%)`);
+    txCabe(ctx, pts.join(" · "), CW / 2, 1366, 22, 800, "rgba(251,248,241,.7)", CW - 140, "center");
+  }
   // regiões
-  let y = 1384;
+  let y = 1394;
   tx(ctx, "POR REGIÃO", 100, y, 28, 900, OURO, "left", 5);
   tx(ctx, "apurado", 570, y, 24, 800, "rgba(251,248,241,.55)", "center", 2);
   tx(ctx, "projeção", CW - 100, y, 24, 800, "rgba(251,248,241,.55)", "right", 2);
@@ -3430,12 +3511,27 @@ const bu = {
 };
 
 // Monta as cidades a partir dos boletins já conhecidos — sem rede.
+/* Cada cidade do exterior tem duas fontes possíveis: os boletins de urna
+ * (que saem durante o dia) e a totalização oficial do TSE (a partir das 17h).
+ * As duas NUNCA se somam — os votos são os mesmos. Para cada cidade vale a
+ * fonte que já contou mais urnas: o boletim até o TSE alcançar, e o TSE daí em
+ * diante. Assim o exterior não "encolhe" quando a totalização começa, e
+ * nenhum voto entra duas vezes. A projeção do Brasil usa só a totalização do
+ * TSE, que já inclui o exterior. */
+function combinarFontes(c) {
+  const o = c.of, b = c.bu;
+  if (o && (!b || o.st >= b.n)) { c.pl = o.pl; c.pt = o.pt; c.st = o.st; c.ts = o.ts || c.ts; c.fonte = "tse"; }
+  else if (b) { c.pl = b.pl; c.pt = b.pt; c.st = b.n; c.ts = b.ts; c.fonte = "bu"; }
+  else { c.pl = 0; c.pt = 0; c.st = 0; if (o) c.ts = o.ts || c.ts; c.fonte = null; }
+}
 function cidadesDosBoletins() {
   for (const [cd, l] of bu.secoes) {
     const c = ext.cidades.get(cd) || { cd };
     let pl = 0, pt = 0, n = 0;
     for (const zs of l) { const v = bu.lidos[cd + "/" + zs]; if (v) { pl += v[0]; pt += v[1]; n++; } }
-    c.pl = pl; c.pt = pt; c.st = n; c.ts = l.length;
+    c.bu = n ? { pl, pt, n, ts: l.length } : null;
+    if (!c.ts) c.ts = l.length;
+    combinarFontes(c);
     ext.cidades.set(cd, c);
   }
 }
@@ -3568,11 +3664,11 @@ async function carregarExterior(forcar) {
     const buscar = [];
     for (const c of and) {
       const ja = ext.cidades.get(c.cd) || {};
+      ja.cd = c.cd; ja.te = c.te;        // eleitores vêm do andamento
       if (oficial) {
-        Object.assign(ja, c);
+        ja.stOf = c.st; ja.tsOf = c.ts;
         if (c.st > 0 && ja.stLido !== c.st) buscar.push(ja);
-      } else {
-        ja.cd = c.cd; ja.te = c.te;      // eleitores vêm do andamento; o resto, dos boletins
+        else if (!(c.st > 0)) { ja.of = null; combinarFontes(ja); if (!ja.ts) ja.ts = c.ts; }
       }
       ext.cidades.set(c.cd, ja);
     }
@@ -3583,12 +3679,24 @@ async function carregarExterior(forcar) {
           const c = buscar[i++];
           try {
             const o = await tse.lerMunicipio(eleicao, "zz", c.cd);
-            c.pl = o.pl; c.pt = o.pt; c.stLido = c.st;
+            c.of = { pl: o.pl, pt: o.pt, st: c.stOf, ts: c.tsOf };
+            c.stLido = c.stOf;
+            combinarFontes(c);
           } catch {}
         }
       }));
+      // Enquanto o TSE não alcança os boletins em todas as cidades, os
+      // boletins continuam valendo onde estão à frente (sem somar os dois).
+      const real = DEMO === null && TURNO === tse.ELEICAO_2T;
+      const faltaTSE = real && [...ext.cidades.values()].some((c) => c.fonte !== "tse" && c.bu);
+      if (real && (forcar || Date.now() - bu.ultima > 20000)
+          && [...ext.cidades.values()].some((c) => !(c.of && c.of.st >= (c.ts || 1)))) {
+        await lerBoletinsExterior();
+      }
       $("extNota").innerHTML = "<strong>Totalização oficial do TSE.</strong> Atualiza sozinho a "
         + "cada poucos segundos, assim que o TSE publica, enquanto esta seção estiver aberta."
+        + (faltaTSE ? " Nas cidades em que o TSE ainda não chegou, valem os boletins de urna já "
+          + "publicados — nunca os dois somados." : "")
         + (DEMO !== null ? " (Ensaio: números do 1º turno.)" : "");
     } else if (forcar || Date.now() - bu.ultima > 20000) {
       await lerBoletinsExterior();
@@ -5349,7 +5457,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=70b0b8ed0e").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=5724770936").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
