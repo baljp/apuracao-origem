@@ -2905,37 +2905,172 @@ $("buscaMun").addEventListener("change", () => {
 const PAISES_EXTERIOR = {"29254":"Costa do Marfim","29262":"Emirados Árabes Unidos","99198":"Nigéria","29270":"Gana","99325":"Etiópia","30457":"Países Baixos","29289":"Jordânia","29297":"Turquia","29300":"Argélia","29319":"Uruguai","29327":"Paraguai","39241":"Cazaquistão","29335":"Grécia","39080":"Estados Unidos","99171":"Iraque","39128":"Azerbaijão","99350":"Mali","29343":"Tailândia","29351":"Espanha","99473":"Bahrein","29360":"Líbano","29378":"Sérvia","38881":"Belize","29386":"Alemanha","29394":"Guiné-Bissau","29408":"Colômbia","29416":"Estados Unidos","39209":"Eslováquia","39187":"Congo","29424":"Barbados","29432":"Bélgica","29440":"Romênia","29459":"Hungria","29467":"Argentina","29475":"Guiana Francesa (França)","29483":"Egito","29491":"Austrália","30651":"China","29505":"Venezuela","99384":"Santa Lúcia","29513":"Estados Unidos","29521":"Uruguai","29530":"África do Sul","29556":"Paraguai","29564":"Venezuela","99210":"Bolívia","29572":"Bolívia","30929":"Sri Lanka","38903":"Guiné","29580":"Paraguai","29599":"Dinamarca","38920":"Benin","29602":"Argentina","29610":"Senegal","29629":"Bangladesh","29637":"Síria","38962":"Tanzânia","29653":"Catar","29661":"Irlanda","29645":"Timor-Leste","99503":"Reino Unido","29670":"Paraguai","29688":"Suécia","30961":"Portugal","29696":"Alemanha","30669":"Botsuana","29700":"Suíça","29718":"Guiana","98000":"Guatemala","29742":"Japão","29750":"Vietnã","29769":"Zimbábue","30902":"Estados Unidos","29777":"Cuba","29785":"Finlândia","29793":"China","29807":"Estados Unidos","29815":"Camarões","38989":"Armênia","29823":"Peru","29831":"Paquistão","39306":"Turquia","29840":"Indonésia","29173":"Nepal","29858":"Ucrânia","99430":"Jamaica","29874":"Rep. Dem. do Congo","29882":"Kuwait","29890":"Malásia","29904":"Bolívia","29912":"Nigéria","29939":"Gabão","99341":"Malauí","29947":"Peru","29955":"Portugal","39160":"Eslovênia","29963":"Togo","29971":"Reino Unido","29980":"Estados Unidos","29998":"Angola","99287":"Zâmbia","30066":"Espanha","39263":"Guiné Equatorial","30082":"Filipinas","30074":"Nicarágua","30090":"Moçambique","99511":"França","39102":"Omã","39004":"Argentina","30104":"México","30112":"Estados Unidos","30120":"Itália","30147":"Uruguai","30155":"Canadá","30163":"Rússia","30171":"Índia","30180":"Alemanha","30198":"Japão","30201":"Quênia","99180":"Bahamas","39322":"Chipre","30210":"Índia","30228":"Estados Unidos","99490":"Estados Unidos","30244":"Noruega","30252":"Canadá","30260":"Panamá","30279":"Suriname","30287":"França","30295":"Argentina","30309":"Paraguai","30317":"China","30325":"Trinidad e Tobago","30341":"Portugal","30333":"Haiti","30350":"Tchéquia","30368":"Cabo Verde","30376":"África do Sul","99155":"Argentina","99236":"Bolívia","99295":"Coreia do Norte","30392":"Equador","30406":"Marrocos","30414":"Palestina","30422":"Arábia Saudita","30430":"Uruguai","99244":"Uruguai","30449":"Itália","99147":"Antígua e Barbuda","30465":"Paraguai","30473":"Bolívia","99279":"Venezuela","30481":"Chile","30988":"Bósnia e Herzegovina","30538":"Coreia do Sul","29548":"Singapura","99333":"Guiana Francesa (França)","30562":"Austrália","30490":"República Dominicana","30503":"Estados Unidos","30511":"Costa Rica","30520":"El Salvador","39225":"São Tomé e Príncipe","30546":"Bulgária","30570":"Taiwan","99317":"Estônia","99104":"Geórgia","30597":"Irã","30600":"Honduras","30619":"Israel","99139":"Albânia","30635":"Canadá","30686":"Líbia","30708":"Tunísia","30627":"Japão","39284":"Burkina Faso","39063":"Canadá","30740":"Polônia","30767":"Áustria","30783":"Estados Unidos","30805":"Nova Zelândia","30821":"Namíbia","30848":"China","99376":"Mianmar","39020":"Croácia","30864":"Suíça"};
 const ext = { cidades: new Map(), aberto: false, todos: false, lendo: false, timer: null };
 
-async function carregarExterior() {
-  if (ext.lendo) return;
-  ext.lendo = true;
-  const eleicao = DEMO !== null ? tse.ELEICAO_1T : TURNO;
-  const antesDas17 = DEMO === null && TURNO === tse.ELEICAO_2T && Date.now() < FECHAMENTO_URNAS;
-  try {
-    const and = await tse.lerAndamentoUF(eleicao, "zz");
-    const buscar = [];
-    for (const c of and) {
-      const ja = ext.cidades.get(c.cd) || {};
-      const novo = Object.assign(ja, c);
-      ext.cidades.set(c.cd, novo);
-      if (c.st > 0 && novo.stLido !== c.st) buscar.push(novo);
+/* Antes das 17h: os boletins de urna.
+ *
+ * O TSE não divulga a totalização antes das 17h de Brasília, mas publica,
+ * ao longo do dia, o BOLETIM DE URNA de cada seção do exterior assim que ela
+ * fecha e transmite — é de onde a imprensa tira os "primeiros resultados".
+ * O boletim vem no formato binário do TSE (ASN.1/DER); aqui ele é lido com um
+ * leitor mínimo, que só procura os votos nominais de 13 e 22.
+ *
+ * Para não baixar 1.300 arquivos a cada leitura, as cidades em que nenhuma
+ * seção fechou ainda são sondadas por UMA seção só; quando ela aparece, as
+ * demais daquela cidade são buscadas. Boletim lido não muda mais: fica
+ * guardado no aparelho. Depois que a totalização oficial começa, a página
+ * passa a usar os números oficiais por cidade. */
+const PLEITO_2T = 3221;
+const URL_BU = "https://resultados.tse.jus.br/oficial/ele2026/arquivo-urna/" + PLEITO_2T;
+const CHAVE_BU = "bus-" + PLEITO_2T;
+const bu = {
+  secoes: null,                    // cidade -> [ "zona/secao", ... ]
+  lidos: (() => { try { return JSON.parse(localStorage.getItem(CHAVE_BU) || "{}"); } catch { return {}; } })(),
+  ultima: 0,
+};
+
+function lerDER(b, i, fim, saida) {
+  while (i < fim) {
+    const tag = b[i++];
+    let t = tag & 0x1f;
+    if (t === 0x1f) { t = 0; let c; do { c = b[i++]; t = (t << 7) | (c & 0x7f); } while (c & 0x80); }
+    let L = b[i++];
+    if (L & 0x80) { const n = L & 0x7f; L = 0; for (let k = 0; k < n; k++) L = L * 256 + b[i++]; }
+    const no = { c: tag >> 6, t, v: b.subarray(i, i + L), k: (tag & 0x20) ? [] : null };
+    if (no.k) lerDER(b, i, i + L, no.k);
+    saida.push(no);
+    i += L;
+  }
+  return saida;
+}
+const inteiroDER = (v) => { let x = 0; for (const y of v) x = x * 256 + y; return x; };
+
+function votosDoBoletim(buf) {
+  const b = new Uint8Array(buf);
+  const env = lerDER(b, 0, b.length, [])[0].k;
+  const oct = env.find((n) => n.c === 0 && n.t === 4 && !n.k);
+  const dentro = lerDER(oct.v, 0, oct.v.length, []);
+  const r = { pt: 0, pl: 0 };
+  const andar = (nos) => {
+    for (const n of nos) {
+      if (!n.k) continue;
+      const k = n.k;
+      if (k.length >= 2 && k[0].c === 2 && k[0].t === 1 && k[1].c === 2 && k[1].t === 2) {
+        const tipo = inteiroDER(k[0].v), q = inteiroDER(k[1].v);
+        const id = k.find((x) => x.c === 2 && x.t === 3 && x.k && x.k.length);
+        const cod = id ? inteiroDER(id.k[id.k.length - 1].v) : null;
+        if (tipo === 1 && cod === 13) r.pt += q;
+        else if (tipo === 1 && cod === 22) r.pl += q;
+      } else andar(k);
     }
-    // No máximo 6 de cada vez, para não engasgar o celular.
+  };
+  andar(dentro);
+  return r;
+}
+
+async function boletimDaSecao(cd, zs) {
+  const [zona, secao] = zs.split("/");
+  const base = `${URL_BU}/dados/zz/${cd}/${zona}/${secao}/`;
+  const r = await fetch(base + `p00${PLEITO_2T}-zz-m${cd}-z${zona}-s${secao}-aux.json`, { cache: "no-cache" });
+  if (!r.ok) return null;                     // ainda não transmitida
+  const aux = await r.json();
+  for (const h of aux.hashes || []) {
+    const arq = (h.arq || []).find((a) => a.tp === "bu");
+    if (!arq) continue;
+    const rb = await fetch(base + h.hash + "/" + arq.nm, { cache: "force-cache" });
+    if (!rb.ok) continue;
+    return votosDoBoletim(await rb.arrayBuffer());
+  }
+  return null;
+}
+
+async function lerBoletinsExterior() {
+  if (!bu.secoes) {
+    const cs = await (await fetch(`${URL_BU}/config/zz/zz-p00${PLEITO_2T}-cs.json`, { cache: "no-cache" })).json();
+    bu.secoes = new Map();
+    for (const m of (cs.abr && cs.abr[0] && cs.abr[0].mu) || []) {
+      const l = [];
+      // Seção agregada ("nsp") vota na urna da principal: o boletim é um só.
+      for (const z of m.zon || []) for (const s of z.sec || []) if (!s.nsp) l.push(z.cd + "/" + s.ns);
+      bu.secoes.set(m.cd, l);
+    }
+  }
+  // Duas etapas: primeiro as sondas (e as seções pendentes das cidades que
+  // já têm boletim); depois, as demais seções das cidades que acabaram de
+  // aparecer na sonda.
+  const sondadas = new Set();
+  for (let etapa = 0; etapa < 2; etapa++) {
+    const tarefas = [];
+    for (const [cd, l] of bu.secoes) {
+      const lidas = l.filter((zs) => bu.lidos[cd + "/" + zs]);
+      const faltam = l.filter((zs) => !bu.lidos[cd + "/" + zs] && !sondadas.has(cd + "/" + zs));
+      // Cidade sem nenhum boletim ainda: sonda uma seção só.
+      for (const zs of (lidas.length ? faltam : (etapa === 0 ? faltam.slice(0, 1) : []))) {
+        tarefas.push([cd, zs]);
+      }
+    }
+    if (!tarefas.length) break;
     let i = 0;
-    await Promise.all(Array.from({ length: 6 }, async () => {
-      while (i < buscar.length) {
-        const c = buscar[i++];
+    await Promise.all(Array.from({ length: 8 }, async () => {
+      while (i < tarefas.length) {
+        const [cd, zs] = tarefas[i++];
+        sondadas.add(cd + "/" + zs);
         try {
-          const o = await tse.lerMunicipio(eleicao, "zz", c.cd);
-          c.pl = o.pl; c.pt = o.pt; c.stLido = c.st;
+          const v = await boletimDaSecao(cd, zs);
+          if (v) bu.lidos[cd + "/" + zs] = [v.pl, v.pt];
         } catch {}
       }
     }));
-    $("extNota").innerHTML = antesDas17
-      ? "A votação no exterior segue o horário de cada país, mas o TSE só "
-        + "<strong>divulga resultados depois das 17h de Brasília</strong>, junto com "
-        + "o Brasil. A partir daí, esta lista se atualiza sozinha."
-      : "Votos já contados em cada país. Atualiza sozinho a cada 25 segundos, "
-        + "junto com o TSE, enquanto esta seção estiver aberta." + (DEMO !== null ? " (Ensaio: números do 1º turno.)" : "");
+  }
+  try { localStorage.setItem(CHAVE_BU, JSON.stringify(bu.lidos)); } catch {}
+  for (const [cd, l] of bu.secoes) {
+    const c = ext.cidades.get(cd) || { cd };
+    let pl = 0, pt = 0, n = 0;
+    for (const zs of l) { const v = bu.lidos[cd + "/" + zs]; if (v) { pl += v[0]; pt += v[1]; n++; } }
+    c.pl = pl; c.pt = pt; c.st = n; c.ts = l.length;
+    ext.cidades.set(cd, c);
+  }
+  bu.ultima = Date.now();
+}
+
+async function carregarExterior(forcar) {
+  if (ext.lendo) return;
+  ext.lendo = true;
+  const eleicao = DEMO !== null ? tse.ELEICAO_1T : TURNO;
+  try {
+    const and = await tse.lerAndamentoUF(eleicao, "zz");
+    const oficial = DEMO !== null || TURNO !== tse.ELEICAO_2T || and.some((c) => c.st > 0);
+    ext.modo = oficial ? "oficial" : "bu";
+    const buscar = [];
+    for (const c of and) {
+      const ja = ext.cidades.get(c.cd) || {};
+      if (oficial) {
+        Object.assign(ja, c);
+        if (c.st > 0 && ja.stLido !== c.st) buscar.push(ja);
+      } else {
+        ja.cd = c.cd; ja.te = c.te;      // eleitores vêm do andamento; o resto, dos boletins
+      }
+      ext.cidades.set(c.cd, ja);
+    }
+    if (oficial) {
+      let i = 0;
+      await Promise.all(Array.from({ length: 6 }, async () => {
+        while (i < buscar.length) {
+          const c = buscar[i++];
+          try {
+            const o = await tse.lerMunicipio(eleicao, "zz", c.cd);
+            c.pl = o.pl; c.pt = o.pt; c.stLido = c.st;
+          } catch {}
+        }
+      }));
+      $("extNota").innerHTML = "<strong>Totalização oficial do TSE.</strong> Atualiza sozinho a "
+        + "cada 25 segundos enquanto esta seção estiver aberta."
+        + (DEMO !== null ? " (Ensaio: números do 1º turno.)" : "");
+    } else if (forcar || Date.now() - bu.ultima > 110000) {
+      await lerBoletinsExterior();
+      $("extNota").innerHTML = "<strong>Parcial, pelos boletins de urna</strong> que o TSE já "
+        + "publicou das seções do exterior que fecharam — é de onde saem os primeiros "
+        + "números da imprensa. <strong>Não é a totalização oficial</strong>, que começa às "
+        + "17h de Brasília. Novos boletins entram sozinhos a cada 2 minutos.";
+    }
   } catch {
     $("extNota").textContent = "Não consegui ler o exterior no TSE agora. Tentando de novo em seguida.";
   }
@@ -2961,10 +3096,11 @@ function pintaExterior() {
   $("extConta").textContent = porPais.size + " países";
   $("extResumo").innerHTML = '<div class="ext-tot">'
     + `<div><b>${mil(te)}</b><span>eleitores no exterior</span></div>`
-    + `<div><b>${ts ? n1(100 * st / ts) : "0,0"}%</b><span>das urnas apuradas (${mil(st)} de ${mil(ts)})</span></div>`
+    + `<div><b>${ts ? n1(100 * st / ts) : "0,0"}%</b><span>${ext.modo === "bu" ? "das urnas com boletim publicado" : "das urnas apuradas"} (${mil(st)} de ${mil(ts)})</span></div>`
     + `<div><b>${v ? `<span style="color:var(--pl)">${n1(100 * pl / v)}</span> × <span style="color:var(--pt)">${n1(100 * pt / v)}</span>` : "—"}</b>`
     + `<span>${nPl} × ${nPt} no exterior (válidos)</span></div></div>`;
-  const lista = [...porPais.values()].sort((a, b) => b.te - a.te);
+  const lista = [...porPais.values()].sort((a, b) =>
+    ((b.pl + b.pt > 0) - (a.pl + a.pt > 0)) || (b.te - a.te));
   const mostrar = ext.todos ? lista : lista.slice(0, 12);
   $("extLista").innerHTML = mostrar.map((p) => {
     const vv = p.pl + p.pt;
@@ -2972,7 +3108,7 @@ function pintaExterior() {
     const apu = p.ts ? 100 * p.st / p.ts : 0;
     return `<div class="ext"><div><div class="p">${esc(p.nome)}</div>`
       + `<div class="d">${mil(p.te)} eleitores · ${p.cidades} ${p.cidades === 1 ? "cidade" : "cidades"}`
-      + ` · ${n1(apu)}% das urnas apuradas</div></div>`
+      + ` · ${ext.modo === "bu" ? p.st + " de " + p.ts + " urnas com boletim" : n1(apu) + "% das urnas apuradas"}</div></div>`
       + `<div class="v">${pp == null ? '<span style="color:var(--fraco)">aguardando</span>'
         : `<span class="a">${n1(pp)}%</span> × <span class="b">${n1(100 - pp)}%</span>`
           + `<small>${mil(p.pl)} × ${mil(p.pt)} votos</small>`}</div>`
@@ -2988,13 +3124,14 @@ $("btExtCarregar").addEventListener("click", () => {
   ext.aberto = true;
   $("btExtCarregar").hidden = true;
   $("extNota").textContent = "Lendo o exterior no TSE…";
-  carregarExterior();
-  // Enquanto a apuração corre, atualiza sozinho — só para quem abriu.
+  carregarExterior(true);
+  // Atualiza sozinho — só para quem abriu. Boletins de 2 em 2 minutos;
+  // totalização oficial a cada 25 s.
   if (!ext.timer && (DEMO === null)) {
     // Mesmo ritmo do resto da página: o TSE republica a cada ~27 s, e o
     // arquivo só vem inteiro quando mudou (o "no-cache" pergunta antes).
     ext.timer = setInterval(() => {
-      if (!document.hidden && Date.now() >= FECHAMENTO_URNAS) carregarExterior();
+      if (!document.hidden) carregarExterior();
     }, AO_VIVO);
   }
 });
@@ -4073,7 +4210,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=ac287faccd").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=8e5f0b9bb8").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
