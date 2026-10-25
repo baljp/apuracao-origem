@@ -1616,6 +1616,11 @@ let ultimoComp = null, ultimoT1 = null, ultimoTotais = null, ultimoBrasil = null
 const T1_BR = Object.values(T1_UF).reduce((a, x) => [a[0] + x[0], a[1] + x[1], a[2] + x[2]], [0, 0, 0]);
 /* Total nacional do TSE (o que o aplicativo mostra), quando está à frente da
  * soma dos estados. */
+/* Porcentagem apurada como o TSE publica: seções totalizadas sobre o total. */
+const pctSecoesTSE = (r) => {
+  const b = brasilAFrente(r); if (b) return b.pst;
+  const t = ultimoTotais; return t && t.secoes > 0 ? 100 * t.secoesApuradas / t.secoes : r.pctApurado;
+};
 const brasilAFrente = (r) => {
   const b = ultimoBrasil;
   return b && DEMO === null && b.pl + b.pt > (r.votosApurados || 0) + 0.5 ? b : null;
@@ -1882,13 +1887,16 @@ function contar(el, alvo) {
 }
 
 function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
+  ultimoTotais = totais || null;
   // A hora que o TSE carimbou no arquivo, não a hora do aparelho de quem
   // está olhando: é ela que diz de quando são os números.
-  const hora = horaTSE || new Date().toLocaleTimeString("pt-BR");
+  // Cada estado carimba a hora local dele (Acre, Amazonas…), então a hora
+  // mostrada é a da última conferência com o TSE, no horário de Brasília.
+  const hora = new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" });
   // Enquanto não há voto totalizado, dizer "dados do TSE de 16:56" sugere
   // que existe número ali. Existe conexão, que é outra coisa.
   let st = (r.votosApurados > 0 || brasilAFrente(r))
-    ? '<span class="pisca"></span>dados do TSE de ' + esc(hora)
+    ? '<span class="pisca"></span>conferido com o TSE às ' + esc(hora)
       + " · tempo real, atualiza sozinho"
     : '<span class="pisca"></span>conectado ao TSE · nenhum voto totalizado '
       + "ainda · " + esc(hora);
@@ -1900,10 +1908,7 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
   // arquivo mais atrasado do conjunto, mas quando a diferença entre o mais
   // velho e o mais novo passa de dois minutos vale dizer: parte do que está
   // na tela é mais recente do que a hora mostrada.
-  if (dispersao > 120) {
-    st += ' · <span class="erro">estados defasados em até '
-        + Math.round(dispersao / 60) + " min entre si</span>";
-  }
+
   $("status").innerHTML = st;
 
   // Quantos votos realmente chegaram. Isto tem de ser contado ANTES de
@@ -1941,7 +1946,8 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
   // a projeção é instável" já vai junto no placar).
   const BR = brasilAFrente(r);
   const comecou = temVoto && (r.votosApurados > 0 || !!BR);
-  const pctApu = BR ? BR.pst : r.pctApurado;
+  const pctApu = BR ? BR.pst
+    : (totais && totais.secoes > 0 ? 100 * totais.secoesApuradas / totais.secoes : r.pctApurado);
   if (DEMO === null) atualizarFaixa(r, comecou);
   $("vazio").style.display = comecou ? "none" : "block";
   $("placar").style.display = comecou ? "block" : "none";
@@ -2007,7 +2013,7 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
     $("tseAgPL").textContent = n1(r.brutoPl) + "%";
     $("tseAgPT").textContent = n1(100 - r.brutoPl) + "%";
     $("tseAgNPL").textContent = curtoPl; $("tseAgNPT").textContent = curtoPt;
-    $("tseAgApu").textContent = n2(r.pctApurado) + "% das urnas";
+    $("tseAgApu").textContent = n2(pctSecoesTSE(r)) + "% das urnas";
     $("tseAgBPL").style.cssText = "width:" + r.brutoPl + "%;background:var(--pl-vivo)";
     $("tseAgBPT").style.cssText = "width:" + (100 - r.brutoPl) + "%;background:var(--pt-vivo)";
   }
@@ -2357,7 +2363,8 @@ $("btCompartilhar").addEventListener("click", () => {
   let vPl = 0, vPt = 0;
   for (const e of r.estados || []) { vPl += e.vPl || 0; vPt += e.vPt || 0; }
   const c = fotoDoMomento(r, ultimaHoraTSE || "", vPl, vPt, "marco", 0);
-  if (BR) { c.of = +(100 * BR.pl / (BR.pl + BR.pt)).toFixed(2); c.pct = +BR.pst.toFixed(2); }
+  if (BR) c.of = +(100 * BR.pl / (BR.pl + BR.pt)).toFixed(2);
+  c.pct = +pctSecoesTSE(r).toFixed(2);
   if (c.of == null) return;
   c.k = c.pct >= 99.995 ? 100 : n2(c.pct);
   abrirCard(c);
@@ -5338,7 +5345,7 @@ function atualizarFaixa(r, comecou) {
   faixa.className = "status vivo";
   $("statusTitulo").textContent = "Ao vivo · apuração oficial do TSE";
   $("statusTexto").innerHTML =
-    "<strong>" + n2(brasilAFrente(r) ? brasilAFrente(r).pst : r.pctApurado) + "% apurado.</strong> Votos oficiais do TSE, "
+    "<strong>" + n2(pctSecoesTSE(r)) + "% apurado.</strong> Votos oficiais do TSE, "
     + "com a projeção de onde a conta deve terminar.";
 }
 
@@ -5690,7 +5697,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=9cb1440052").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=9eb95a320b").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
