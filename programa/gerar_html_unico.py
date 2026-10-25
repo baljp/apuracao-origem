@@ -130,11 +130,13 @@ const MAPA_MUN_EMBUTIDO = __MAPAMUN__;
     html = html[:script_pagina.start()] + novo_script + html[script_pagina.end():]
 
     # A fonte vai embutida no próprio arquivo.
-    alvo_fonte = '<link rel="stylesheet" href="./fonte.css">'
-    if alvo_fonte not in html:
+    # (e os pré-carregamentos de arquivos que não existem no HTML solto saem)
+    html, n = re.subn(r'<link rel="preload" href="\./fonte\.css"[^>]*>\n<noscript>.*?</noscript>',
+                      lambda m: "<style>\n" + ler("fonte.css") + "</style>", html, flags=re.S)
+    if not n:
         print("Não achei o link da fonte no index.html")
         return 1
-    html = html.replace(alvo_fonte, "<style>\n" + ler("fonte.css") + "</style>")
+    html = re.sub(r'<link rel="(?:modulepreload|preload)" href="\./[^"]+"[^>]*>\n?', "", html)
 
     # Referências a arquivos que não acompanham o HTML solto.
     html = re.sub(r'<link rel="manifest"[^>]*>\n?', "", html)

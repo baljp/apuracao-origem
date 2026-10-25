@@ -57,6 +57,8 @@ let trajetoriaAntes = 0;
 
 for (const marco of PARADAS) {
   await p.goto(`${SITE}?demo=${marco}`, { waitUntil: "networkidle2", timeout: 60000 });
+  // O mapa só é montado quando chega perto da tela: rola até ele.
+  await p.evaluate(() => document.getElementById("cartaoMapa").scrollIntoView());
   await new Promise((r) => setTimeout(r, 4500));
 
   const d = await p.evaluate(() => {

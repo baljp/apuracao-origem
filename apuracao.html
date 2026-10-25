@@ -25,7 +25,7 @@
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: https://oxeapuracao.goatcounter.com;
   font-src 'self' data:;
-  connect-src 'self' https://resultados.tse.jus.br https://pt.wikipedia.org;
+  connect-src 'self' https://resultados.tse.jus.br https://pt.wikipedia.org https://raw.githubusercontent.com;
   manifest-src 'self';
   worker-src 'self';
   base-uri 'none';
@@ -1899,7 +1899,7 @@ async function buscar(url) {
 
 /* Roda as tarefas com um teto de simultâneas, para não abrir 54 conexões de
  * uma vez e engasgar o navegador (e o celular de quem está vendo). */
-async function emLotes(itens, trabalho, simultaneas = 8) {
+async function emLotes(itens, trabalho, simultaneas = 16) {
   const saida = new Array(itens.length);
   let proximo = 0;
   const operarios = Array.from({ length: Math.min(simultaneas, itens.length) }, async () => {
@@ -2777,6 +2777,7 @@ async function tick() {
     }
     const r = modelo.projetar(fracoes, observado, 240);
     pinta(r, falhas, totais, horaTSE, observado, dispersao);
+    if (!jaLeuTSE) carregarHistorico();
     jaLeuTSE = true;
   } catch (e) {
     // Nos minutos entre a conexão e o primeiro boletim, o TSE ainda não
@@ -4803,6 +4804,74 @@ function atualizarEstadoSemLer() {
   const l = atualizarEstado.lendo; atualizarEstado.lendo = true; atualizarEstado(); atualizarEstado.lendo = l;
 }
 
+/* ---- histórico da noite, para quem chega tarde ------------------------------
+ *
+ * Um robô no GitHub (programa/gravar_historico.mjs) lê o TSE a cada minuto
+ * durante a apuração e grava a evolução — nacional, por estado e por região —
+ * num arquivo público. Quem abre o site às 20h baixa esse arquivo e vê o
+ * gráfico, o registro a cada 1% e os cards desde o começo da noite, como se
+ * estivesse com a página aberta desde as 17h. */
+const URL_HIST = "https://raw.githubusercontent.com/oxeeraassim/apuracao/historico/historico.json";
+let histLido = 0;
+async function carregarHistorico() {
+  if (DEMO !== null || TURNO !== tse.ELEICAO_2T || Date.now() < ABERTURA) return;
+  if (Date.now() - histLido < 150000) return;
+  histLido = Date.now();
+  let h;
+  try {
+    const r = await fetch(URL_HIST + "?m=" + Math.floor(Date.now() / 120000), { cache: "no-store" });
+    if (!r.ok) return;
+    h = await r.json();
+  } catch { return; }
+  const pts = (h && Array.isArray(h.pontos) ? h.pontos : [])
+    .filter((p) => p && typeof p.a === "number" && typeof p.p === "number").sort((a, b) => a.a - b.a);
+  if (!pts.length) return;
+  // Trajetória nacional.
+  let mexeu = false;
+  for (const p of pts) {
+    if (!historico.some((q) => Math.abs(q.pct - p.a) < 0.1)) {
+      historico.push({ pct: p.a, proj: p.p, bruto: p.o, t: p.t * 1000 }); mexeu = true;
+    }
+  }
+  if (mexeu) { historico.sort((a, b) => a.pct - b.pct); salvarHistorico(); desenha(); }
+  // Por estado.
+  for (const p of pts) for (const [uf, v] of Object.entries(p.u || {})) {
+    const l = histUF[uf] || (histUF[uf] = []);
+    if (!l.some((q) => Math.abs(q[0] - v[0]) < 0.3)) l.push(v);
+  }
+  for (const l of Object.values(histUF)) l.sort((a, b) => a[0] - b[0]);
+  try { localStorage.setItem(CHAVE_HUF, JSON.stringify(histUF)); } catch {}
+  // Registro a cada 1% e cards a cada 5%: preenche o que a pessoa perdeu.
+  const primeiro = (k) => pts.find((p) => p.a >= k);
+  const max = pts[pts.length - 1].a;
+  let novosReg = false;
+  for (let k = 1; k <= Math.min(100, Math.floor(max)); k++) {
+    if (registro.some((x) => x.k === k)) continue;
+    const p = primeiro(k);
+    if (!p || p.a >= k + 1) continue;          // pulou esse ponto: não inventa
+    registro.push({ k, pct: p.a, hora: p.h || "", t: p.t * 1000, of: p.o, vPl: p.vp, vPt: p.vt,
+      pr: p.p, lo: p.lo, hi: p.hi, ch: p.ch });
+    novosReg = true;
+  }
+  if (novosReg) { registro.sort((a, b) => a.k - b.k); salvarRegistro(); pintaRegistro(); }
+  let novosCards = false;
+  for (const m of MARCOS_CARD) {
+    if (m > max || cards.some((c) => c.tipo === "marco" && c.k === m)) continue;
+    const p = primeiro(m);
+    if (!p) continue;
+    cards.push({ tipo: "marco", k: m, pct: p.a, hora: p.h || "", t: p.t * 1000, of: p.o, pr: p.p,
+      lo: p.lo, hi: p.hi, ch: p.ch, vPl: p.vp, vPt: p.vt, reg: p.reg || [] });
+    novosCards = true;
+  }
+  if (novosCards) {
+    cards.sort((a, b) => a.t - b.t);
+    salvarCards();
+    if (!$("painelCards").hidden) pintaCards();
+  }
+  if (ufAberta) atualizarEstado();
+}
+setInterval(() => { if (!document.hidden) carregarHistorico(); }, 180000);
+
 /* ---- estados, regiões, saldo, quanto falta ------------------------------ */
 let ordemEstados = "apurado";
 let ultimoPintado = null;
@@ -5311,8 +5380,24 @@ async function desenhaMapaMun(r) {
   return true;
 }
 
+/* O mapa por município é a parte mais pesada da página (5,6 mil contornos).
+ * Ele só é montado quando o cartão chega perto da tela — quem abre o site
+ * vê o placar na hora, sem esperar o mapa. */
+let mapaPerto = false;
+if ("IntersectionObserver" in window) {
+  const obsMapa = new IntersectionObserver((ents) => {
+    if (ents.some((e) => e.isIntersecting)) {
+      mapaPerto = true; obsMapa.disconnect();
+      desenhaMapa(ultimoR).catch(() => {});
+    }
+  }, { rootMargin: "600px" });
+  obsMapa.observe($("cartaoMapa"));
+} else mapaPerto = true;
+
 async function desenhaMapa(r) {
   ultimoR = r;
+  $("cartaoMapa").style.display = "block";
+  if (!mapaPerto) return;
   if (modoMapa === "mun") {
     $("tituloMapa").textContent = "Município a município";
     if (await desenhaMapaMun(r)) return;

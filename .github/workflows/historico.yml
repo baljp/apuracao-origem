@@ -1,0 +1,49 @@
+# Grava a evolução da apuração (nacional, por estado e por região) durante a
+# noite do 2º turno, para quem abrir o site tarde ver o gráfico desde o começo.
+# O arquivo vai para o ramo "historico", e não para o site: assim o site não é
+# republicado a cada minuto.
+name: Histórico da apuração
+
+on:
+  schedule:
+    - cron: "50 19 25 10 *"     # 16h50 de Brasília do dia 25
+    - cron: "20 22 25 10 *"     # reserva, caso a primeira não tenha começado
+    - cron: "20 1 26 10 *"      # reserva
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: historico
+  cancel-in-progress: false
+
+jobs:
+  gravar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Prepara o ramo historico
+        run: |
+          cp base.json modelo.js tse.js /tmp/ 2>/dev/null || true
+          mkdir -p /tmp/site && cp -r base.json modelo.js tse.js programa /tmp/site/
+          if git ls-remote --exit-code --heads origin historico; then
+            git fetch origin historico && git checkout historico
+          else
+            git checkout --orphan historico && git rm -rf -q . && echo '{"pontos":[]}' > historico.json
+          fi
+      - name: Grava a noite
+        env:
+          EMPURRAR: "1"
+        run: |
+          cp /tmp/site/programa/gravar_historico.mjs ./gravar.mjs
+          cp /tmp/site/base.json /tmp/site/modelo.js /tmp/site/tse.js .
+          sed -i 's#"\.\./modelo\.js"#"./modelo.js"#; s#"\.\./tse\.js"#"./tse.js"#; s#"\.\./base\.json"#"./base.json"#' gravar.mjs
+          printf 'base.json\nmodelo.js\ntse.js\ngravar.mjs\n' > .gitignore
+          node gravar.mjs historico.json 350

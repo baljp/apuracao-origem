@@ -62,7 +62,7 @@ async function buscar(url) {
 
 /* Roda as tarefas com um teto de simultâneas, para não abrir 54 conexões de
  * uma vez e engasgar o navegador (e o celular de quem está vendo). */
-async function emLotes(itens, trabalho, simultaneas = 8) {
+async function emLotes(itens, trabalho, simultaneas = 16) {
   const saida = new Array(itens.length);
   let proximo = 0;
   const operarios = Array.from({ length: Math.min(simultaneas, itens.length) }, async () => {
