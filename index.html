@@ -1859,13 +1859,14 @@ function textoChance(p, lo, hi, pct, minPct, onde, proj) {
   // A margem do modelo só mede o ruído da conta. Por cima dela entra o erro
   // que nenhum modelo vê: estados que faltam se comportando diferente dos
   // que já chegaram. Esse erro encolhe conforme a apuração anda — cerca de
-  // 2 pontos com 30% apurado, 1,3 com 60%, 0,5 perto do fim. A chance sai da
+  // 1,3 ponto com 30% apurado, 0,8 com 60%, 0,3 perto do fim (calibrado em
+  // simulações com a ordem de chegada real desta noite). A chance sai da
   // distância entre a projeção e os 50%, medida nessa régua realista, e é
   // mostrada como faixa (régua 20% mais estreita e 25% mais larga), nunca
   // como um número único com aparência de certeza.
   const f = Math.max(0, 1 - pct / 100);
   const sdMod = lo != null && hi != null ? (hi - lo) / 3.29 : 0.5;
-  const sdSis = 0.3 + 2.4 * f;
+  const sdSis = 0.2 + 1.6 * f;
   const sd = Math.sqrt(sdMod * sdMod + sdSis * sdSis);
   const d = Math.abs(proj - 50);
   const Phi = (z) => 0.5 * (1 + erf(z / Math.SQRT2));
@@ -5775,7 +5776,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=bc61e8851c").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=40bfd5626d").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
