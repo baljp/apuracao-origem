@@ -19,6 +19,7 @@ import * as tse from "../tse.js";
 const ARQ = process.argv[2] || "historico.json";
 const MINUTOS = parseFloat(process.argv[3] || "350");
 const EMPURRAR = process.env.EMPURRAR === "1";
+const RAMO = process.env.RAMO || "historico";
 const ELEICAO = parseInt(process.env.ELEICAO || String(tse.ELEICAO_2T), 10);  // teste: ELEICAO=6257
 const base = JSON.parse(readFileSync(new URL("../base.json", import.meta.url)));
 const modelo = new Modelo(base);
@@ -77,7 +78,7 @@ async function rodada() {
 function empurrar() {
   if (!EMPURRAR || !mudou) return;
   try {
-    execSync(`git add ${ARQ} && git -c user.name="apuracao-bot" -c user.email="apuracao-bot@users.noreply.github.com" commit -q -m "historico: ${hist.pontos.length} pontos" && git push -q origin HEAD:historico`, { stdio: "inherit" });
+    execSync(`git add ${ARQ} && git -c user.name="apuracao-bot" -c user.email="apuracao-bot@users.noreply.github.com" commit -q -m "historico: ${hist.pontos.length} pontos" && git push -q origin HEAD:${RAMO}`, { stdio: "inherit" });
     mudou = false;
   } catch (e) { console.log("push falhou:", e.message); }
 }
