@@ -779,33 +779,64 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 .an-bt{background:#1F2A44;color:#fff;text-decoration:none;font-weight:900;font-size:13px;
   border-radius:10px;padding:8px 11px;white-space:nowrap}
 .an-x{background:none;border:0;font-size:22px;line-height:1;color:#5A3B00;cursor:pointer;padding:2px 6px}
-.ext-resumo{display:grid;gap:8px;margin-bottom:12px}
-.ext-tot{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-@media (max-width:480px){ .ext-tot{grid-template-columns:1fr 1fr} }
-.ext-tot div{background:var(--superficie-2);border:1px solid var(--linha);border-radius:14px;padding:10px 12px}
-.ext-tot b{display:block;font-size:20px;font-weight:900;letter-spacing:-.02em}
-.ext-tot span{font-size:11.5px;color:var(--fraco);font-weight:750}
-.ext-tot b span{font-size:inherit;font-weight:900}
-.ext-lista{display:grid;gap:8px}
-.ext{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:11px 13px;
-  border-radius:14px;background:var(--superficie-2);border:1px solid var(--linha)}
-.ext .p{font-weight:900;font-size:15px;line-height:1.2}
-.ext .d{font-size:12px;color:var(--fraco);font-weight:700;margin-top:2px}
-.ext .v{text-align:right;font-weight:900;font-size:14.5px;white-space:nowrap}
-.ext .v .a{color:var(--pl)} .ext .v .b{color:var(--pt)}
-.ext .v small{display:block;font-size:11px;color:var(--fraco);font-weight:750}
-.ext .mini{grid-column:1 / -1;height:7px;border-radius:999px;overflow:hidden;display:flex;gap:2px;background:var(--linha)}
-.ext .mini i{display:block;height:100%}
-.cmp{grid-column:1 / -1;display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
-.ch{display:inline-flex;align-items:baseline;gap:5px;font-size:12.5px;font-weight:800;
-  padding:4px 9px;border-radius:999px;border:1px solid var(--linha)}
-.ch.pl{background:color-mix(in srgb,var(--pl) 9%,var(--superficie));color:var(--pl)}
-.ch.pt{background:color-mix(in srgb,var(--pt) 9%,var(--superficie));color:var(--pt)}
+/* ---------- exterior ---------- */
+.selo-ext{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:900;
+  letter-spacing:.06em;text-transform:uppercase;padding:6px 11px;border-radius:999px;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#fff;white-space:nowrap}
+.selo-ext i{width:8px;height:8px;border-radius:50%;background:#F2B544}
+.selo-ext.bu i{background:#F2B544;animation:pulso 1.8s infinite}
+.selo-ext.oficial i{background:#34D399;animation:pulso 1.8s infinite}
+.ext-placar{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-top:4px}
+.ext-placar .lado .pct{font-size:clamp(34px,10.5vw,60px)}
+.ext-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}
+.ext-stats div{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 11px}
+.ext-stats b{display:block;font-size:clamp(17px,5vw,22px);font-weight:900;letter-spacing:-.02em;color:#fff}
+.ext-stats span{display:block;font-size:11.5px;font-weight:750;color:rgba(255,255,255,.62);line-height:1.3;margin-top:2px}
+.ext-1t{margin-top:12px;padding:11px 12px;border-radius:14px;background:rgba(242,181,68,.1);
+  border:1px solid rgba(242,181,68,.35)}
+.ext-1t .t{font-size:11.5px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#F2B544;margin-bottom:8px}
+.ext-1t .linhas{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ext-1t .l{background:rgba(255,255,255,.06);border-radius:11px;padding:8px 10px}
+.ext-1t .l .n{font-size:12px;font-weight:850;color:rgba(255,255,255,.75)}
+.ext-1t .l .d{font-size:22px;font-weight:900;letter-spacing:-.02em;line-height:1.1}
+.ext-1t .l .d.sobe{color:#6EE7B7} .ext-1t .l .d.desce{color:#FCA5A5}
+.ext-1t .l .a{font-size:11.5px;font-weight:750;color:rgba(255,255,255,.6)}
+.ext-1t .ex{font-size:12px;color:rgba(255,255,255,.6);font-weight:650;margin-top:8px;line-height:1.45}
+.ext-nota{margin-top:12px;color:rgba(255,255,255,.68)!important}
+.ext-nota strong{color:#fff}
+.ext-vence{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.ext-vence span{font-size:12.5px;font-weight:850;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08)}
+.ext-lista{display:grid;gap:9px}
+@media (min-width:760px){ .ext-lista{grid-template-columns:1fr 1fr} }
+.pais{display:grid;grid-template-columns:46px 1fr auto;gap:6px 12px;align-items:center;
+  padding:12px 13px;border-radius:16px;background:var(--superficie-2);border:1px solid var(--linha)}
+.pais.vazio-pais{opacity:.72}
+.bandeira{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:27px;
+  background:var(--superficie);border:1px solid var(--linha);line-height:1}
+.pais .p{font-weight:900;font-size:15px;line-height:1.2}
+.pais .d{font-size:11.5px;color:var(--fraco);font-weight:750;margin-top:2px}
+.pais .r{text-align:right;font-weight:900;font-size:19px;letter-spacing:-.02em;line-height:1.05}
+.pais .r small{display:block;font-size:11px;font-weight:800;letter-spacing:0;color:var(--fraco)}
+.pais .barra2{grid-column:1 / -1;position:relative;height:12px;border-radius:999px;overflow:hidden;
+  display:flex;gap:2px;background:var(--linha)}
+.pais .barra2 i{display:block;height:100%}
+.pais .barra2:after{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--superficie);transform:translateX(-50%)}
+.pais .nums{grid-column:1 / -1;display:flex;justify-content:space-between;font-size:11.5px;font-weight:800;margin-top:-2px}
+.pais .nums .a{color:var(--pl)} .pais .nums .b{color:var(--pt)}
+.cmp{grid-column:1 / -1;display:flex;gap:6px;flex-wrap:wrap}
+.ch{display:inline-flex;align-items:baseline;gap:5px;font-size:12px;font-weight:800;
+  padding:4px 9px;border-radius:999px;border:1px solid var(--linha);background:var(--superficie)}
+.ch.pl b{color:var(--pl)} .ch.pt b{color:var(--pt)}
 .ch b{font-weight:900}
-.ch em{font-style:normal;color:var(--fraco);font-weight:700;font-size:11.5px}
-.cmp-tot{background:var(--superficie-2);border:1px solid var(--linha);border-radius:14px;
-  padding:10px 12px;font-size:13.5px;font-weight:700}
-.cmp-tot .cmp{margin-top:7px}
+.ch em{font-style:normal;color:var(--fraco);font-weight:700;font-size:11px}
+.vant{margin-top:10px;padding:10px 11px;border-radius:12px;background:rgba(255,255,255,.06)}
+.vant .vt{font-size:11.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.7)}
+.vant .vl{display:flex;align-items:center;gap:12px;margin-top:6px}
+.vant .vl span{display:flex;flex-direction:column;font-size:11.5px;font-weight:750;color:rgba(255,255,255,.6)}
+.vant .vl b{font-size:clamp(15px,4.6vw,20px);font-weight:900;color:#fff;letter-spacing:-.02em;white-space:nowrap}
+.vant .vl .seta{font-size:22px;color:#F2B544;font-weight:900}
+.vant .vf{font-size:12.5px;font-weight:650;color:rgba(255,255,255,.75);margin-top:6px;line-height:1.45}
+.vant .vf b{color:#FFC94D}
 </style>
 </head>
 <body>
@@ -1046,17 +1077,33 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
     <div class="regioes" id="regioes"></div>
   </div>
 
-  <div class="cartao" id="cartaoExterior">
-    <div class="cab"><div><span class="rotulo">Brasileiros que votam fora do país</span>
-      <h2>Votos no exterior</h2></div><span class="pilula" id="extConta">por país</span></div>
-    <div class="ext-resumo" id="extResumo"><div class="faixa">Eleitores, urnas apuradas e
-      votos de Flávio e Lula em cada país onde há seção eleitoral.</div></div>
-    <div class="ext-lista" id="extLista"></div>
-    <div class="acoes" style="margin-top:12px">
-      <button class="bt-sec forte" id="btExtCarregar">Ver votos por país</button>
-      <button class="bt-sec" id="btExtTodos" hidden>Ver todos os países</button>
+  <div class="cartao painel" id="cartaoExterior">
+    <div class="cab" style="margin-bottom:12px">
+      <div><span class="rotulo">Brasileiros que votam fora do país</span>
+        <h2>Votos no exterior</h2></div>
+      <span class="selo-ext" id="extSelo"><i></i><span>carregando</span></span>
     </div>
-    <div class="faixa" id="extNota" style="margin-top:10px"></div>
+    <div id="extResumo">
+      <div class="faixa" style="color:rgba(255,255,255,.75)">Eleitores, urnas apuradas e votos
+        de Flávio e Lula em cada país onde há seção eleitoral.</div>
+    </div>
+    <button class="bt-ouro" id="btExtCarregar" style="margin-top:14px">Ver votos do exterior</button>
+    <div class="faixa ext-nota" id="extNota"></div>
+  </div>
+
+  <div class="cartao" id="cartaoExtPaises" hidden>
+    <div class="cab">
+      <div><span class="rotulo">País a país</span><h2>Onde cada um ganha</h2></div>
+      <span class="pilula" id="extConta">—</span>
+    </div>
+    <div class="seletor" id="extFiltro" style="margin-bottom:12px">
+      <button class="ativo" data-f="todos">Todos</button>
+      <button data-f="pl">Flávio na frente</button>
+      <button data-f="pt">Lula na frente</button>
+    </div>
+    <div class="ext-lista" id="extLista"></div>
+    <div style="text-align:center;margin-top:12px">
+      <button class="bt-sec" id="btExtTodos" hidden>Ver todos os países</button></div>
   </div>
 
   <div class="cartao" id="cartaoSaldo" style="display:none">
@@ -3093,6 +3140,13 @@ async function carregarExterior(forcar) {
  * para não baixar 186 arquivos só para comparar. */
 const EXT_1T = {"29254":[13,24,44],"29262":[659,512,1355],"99198":[0,0,0],"29270":[2,8,13],"99325":[0,0,0],"30457":[1081,4624,6274],"29289":[59,675,783],"29297":[7,24,37],"29300":[3,27,31],"29319":[227,104,367],"29327":[740,250,1061],"39241":[0,0,0],"29335":[230,196,494],"39080":[3276,1221,4903],"99171":[0,0,0],"39128":[0,0,0],"99350":[0,0,0],"29343":[51,40,99],"29351":[995,3692,5043],"99473":[27,17,47],"29360":[1138,2538,3883],"29378":[13,30,48],"38881":[0,0,0],"29386":[925,6504,8019],"29394":[17,17,37],"29408":[252,245,527],"29416":[11228,3919,16092],"39209":[13,35,58],"39187":[0,0,0],"29424":[0,0,0],"29432":[1959,2516,4975],"29440":[22,31,62],"29459":[93,331,464],"29467":[1449,3507,5309],"29475":[518,484,1084],"29483":[12,46,64],"29491":[805,1478,2593],"30651":[35,48,92],"29505":[125,128,262],"99384":[0,0,0],"29513":[953,1485,2694],"29521":[0,0,0],"29530":[58,90,160],"29556":[2239,202,2503],"29564":[0,0,0],"99210":[0,0,0],"29572":[119,57,185],"30929":[0,0,0],"38903":[0,0,0],"29580":[32,2,35],"29599":[195,1166,1476],"38920":[0,0,0],"29602":[159,182,367],"29610":[24,51,79],"29629":[0,0,0],"29637":[7,97,108],"38962":[5,11,16],"29653":[173,147,357],"29661":[1559,6025,8299],"29645":[27,16,46],"99503":[139,488,677],"29670":[122,14,141],"29688":[505,1770,2540],"30961":[1305,1097,2670],"29696":[1320,3657,5495],"30669":[0,0,0],"29700":[2226,2298,5063],"29718":[43,7,53],"98000":[67,33,118],"29742":[4698,884,6475],"29750":[14,13,29],"29769":[0,0,0],"30902":[1207,557,1895],"29777":[1,36,38],"29785":[155,475,693],"29793":[105,99,244],"29807":[2586,1265,4321],"29815":[0,0,0],"38989":[0,0,0],"29823":[0,0,0],"29831":[0,0,0],"39306":[30,90,127],"29840":[19,8,31],"29173":[11,1,13],"29858":[19,4,23],"99430":[14,4,19],"29874":[0,0,0],"29882":[12,54,73],"29890":[27,44,82],"29904":[106,98,224],"29912":[6,26,32],"29939":[0,0,0],"99341":[0,0,0],"29947":[380,248,730],"29955":[10548,14948,27936],"39160":[25,61,98],"29963":[0,0,0],"29971":[5227,8152,14472],"29980":[1994,2131,4492],"29998":[101,147,264],"99287":[0,0,0],"30066":[2343,3571,6554],"39263":[0,0,0],"30082":[33,26,62],"30074":[35,33,69],"30090":[113,89,214],"99511":[104,715,868],"39102":[20,12,36],"39004":[55,49,112],"30104":[589,585,1285],"30112":[8914,2260,12017],"30120":[2908,3593,7163],"30147":[465,686,1263],"30155":[1456,3823,5889],"30163":[25,49,81],"30171":[1,5,11],"30180":[1287,3364,5288],"30198":[11480,2022,15406],"30201":[17,26,46],"99180":[10,6,19],"39322":[20,24,57],"30210":[26,24,50],"30228":[4684,4570,9891],"99490":[6981,1332,8868],"30244":[198,592,884],"30252":[395,794,1361],"30260":[336,236,658],"30279":[366,121,540],"30287":[1654,8054,10341],"30295":[3,2,5],"30309":[219,59,295],"30317":[22,104,134],"30325":[10,4,19],"30341":[7559,10356,19728],"30333":[0,5,5],"30350":[70,279,397],"30368":[20,39,70],"30376":[172,62,259],"99155":[15,7,22],"99236":[0,0,0],"99295":[0,0,0],"30392":[171,130,328],"30406":[6,30,42],"30414":[46,1078,1157],"30422":[22,52,83],"30430":[9,7,21],"99244":[0,0,0],"30449":[1478,2555,4432],"99147":[0,0,0],"30465":[496,19,525],"30473":[1162,194,1428],"99279":[0,0,0],"30481":[809,928,1971],"30988":[0,0,0],"30538":[72,123,216],"29548":[92,190,348],"99333":[0,0,0],"30562":[1774,3084,5536],"30490":[106,65,188],"30503":[1323,2176,3782],"30511":[159,173,370],"30520":[48,23,77],"39225":[0,0,0],"30546":[8,34,47],"30570":[107,77,218],"99317":[19,142,190],"99104":[0,0,0],"30597":[11,14,25],"30600":[34,17,59],"30619":[523,92,704],"99139":[0,0,0],"30635":[3319,4670,8697],"30686":[0,2,2],"30708":[9,12,22],"30627":[8423,2328,12400],"39284":[0,0,0],"39063":[1873,3221,5711],"30740":[65,183,282],"30767":[311,979,1471],"30783":[1858,2419,4706],"30805":[64,234,332],"30821":[5,6,13],"30848":[41,116,181],"99376":[0,0,0],"39020":[17,29,48],"30864":[2299,2896,5790]};
 
+const ISO_PAIS = {"Albânia":"AL","Alemanha":"DE","Angola":"AO","Antígua e Barbuda":"AG","Argentina":"AR","Argélia":"DZ","Armênia":"AM","Arábia Saudita":"SA","Austrália":"AU","Azerbaijão":"AZ","Bahamas":"BS","Bahrein":"BH","Bangladesh":"BD","Barbados":"BB","Belize":"BZ","Benin":"BJ","Bolívia":"BO","Botsuana":"BW","Bulgária":"BG","Burkina Faso":"BF","Bélgica":"BE","Bósnia e Herzegovina":"BA","Cabo Verde":"CV","Camarões":"CM","Canadá":"CA","Catar":"QA","Cazaquistão":"KZ","Chile":"CL","China":"CN","Chipre":"CY","Colômbia":"CO","Congo":"CG","Coreia do Norte":"KP","Coreia do Sul":"KR","Costa Rica":"CR","Costa do Marfim":"CI","Croácia":"HR","Cuba":"CU","Dinamarca":"DK","Egito":"EG","El Salvador":"SV","Emirados Árabes Unidos":"AE","Equador":"EC","Eslováquia":"SK","Eslovênia":"SI","Espanha":"ES","Estados Unidos":"US","Estônia":"EE","Etiópia":"ET","Filipinas":"PH","Finlândia":"FI","França":"FR","Gabão":"GA","Gana":"GH","Geórgia":"GE","Grécia":"GR","Guatemala":"GT","Guiana":"GY","Guiana Francesa (França)":"GF","Guiné":"GN","Guiné Equatorial":"GQ","Guiné-Bissau":"GW","Haiti":"HT","Honduras":"HN","Hungria":"HU","Indonésia":"ID","Iraque":"IQ","Irlanda":"IE","Irã":"IR","Israel":"IL","Itália":"IT","Jamaica":"JM","Japão":"JP","Jordânia":"JO","Kuwait":"KW","Líbano":"LB","Líbia":"LY","Malauí":"MW","Mali":"ML","Malásia":"MY","Marrocos":"MA","Mianmar":"MM","Moçambique":"MZ","México":"MX","Namíbia":"NA","Nepal":"NP","Nicarágua":"NI","Nigéria":"NG","Noruega":"NO","Nova Zelândia":"NZ","Omã":"OM","Palestina":"PS","Panamá":"PA","Paquistão":"PK","Paraguai":"PY","Países Baixos":"NL","Peru":"PE","Polônia":"PL","Portugal":"PT","Quênia":"KE","Reino Unido":"GB","Rep. Dem. do Congo":"CD","República Dominicana":"DO","Romênia":"RO","Rússia":"RU","Santa Lúcia":"LC","Senegal":"SN","Singapura":"SG","Sri Lanka":"LK","Suriname":"SR","Suécia":"SE","Suíça":"CH","São Tomé e Príncipe":"ST","Sérvia":"RS","Síria":"SY","Tailândia":"TH","Taiwan":"TW","Tanzânia":"TZ","Tchéquia":"CZ","Timor-Leste":"TL","Togo":"TG","Trinidad e Tobago":"TT","Tunísia":"TN","Turquia":"TR","Ucrânia":"UA","Uruguai":"UY","Venezuela":"VE","Vietnã":"VN","Zimbábue":"ZW","Zâmbia":"ZM","África do Sul":"ZA","Áustria":"AT","Índia":"IN"};
+const bandeira = (nome) => {
+  const c = ISO_PAIS[nome];
+  return c ? String.fromCodePoint(...[...c].map((x) => 0x1F1E6 + x.charCodeAt(0) - 65)) : "🌐";
+};
+ext.filtro = "todos";
+
 function pintaExterior() {
   const porPais = new Map();
   const compara = TURNO === tse.ELEICAO_2T && DEMO === null;
@@ -3116,53 +3170,119 @@ function pintaExterior() {
   if (!porPais.size) return;
   const mil = (v) => Math.round(v).toLocaleString("pt-BR");
   const nPl = esc(nomes.pl.split(" ")[0]), nPt = esc(nomes.pt.split(" ")[0]);
-  // "+8,3 pontos" com seta: o quanto cada um tem a mais (ou a menos) que no
-  // 1º turno, em pontos percentuais dos votos válidos.
-  const delta = (agora, antes) => {
-    const d = agora - antes;
-    const seta = d > 0.05 ? "▲" : d < -0.05 ? "▼" : "=";
-    return `<b>${seta} ${d >= 0 ? "+" : "−"}${n1(Math.abs(d))}</b>`;
-  };
-  const chips = (vPl, vPt, a1, b1, v1) => {
-    const v = vPl + vPt;
-    if (!compara || !v || !v1) return "";
-    const ag = 100 * vPl / v, an = 100 * a1 / v1, bg = 100 * vPt / v, bn = 100 * b1 / v1;
-    return `<div class="cmp">`
-      + `<span class="ch pl">${nPl} ${delta(ag, an)} <em>1º turno: ${n1(an)}%</em></span>`
-      + `<span class="ch pt">${nPt} ${delta(bg, bn)} <em>1º turno: ${n1(bn)}%</em></span></div>`;
-  };
   const v = pl + pt;
-  $("extConta").textContent = porPais.size + " países";
-  $("extResumo").innerHTML = '<div class="ext-tot">'
+  const lista = [...porPais.values()];
+  const comVoto = lista.filter((p) => p.pl + p.pt > 0);
+  const vencePl = comVoto.filter((p) => p.pl > p.pt).length;
+  const vencePt = comVoto.filter((p) => p.pt > p.pl).length;
+
+  // Selo: de onde vêm os números agora.
+  $("extSelo").className = "selo-ext " + (ext.modo === "bu" ? "bu" : "oficial");
+  $("extSelo").lastChild.textContent = ext.modo === "bu" ? "parcial · boletins" : "oficial TSE";
+
+  // Diferença para o 1º turno, em pontos.
+  const dif = (agora, antes, nome) => {
+    const d = agora - antes;
+    return `<div class="l"><div class="n">${nome}</div>`
+      + `<div class="d ${d >= 0 ? "sobe" : "desce"}">${d >= 0 ? "▲ +" : "▼ −"}${n1(Math.abs(d))}</div>`
+      + `<div class="a">${n1(antes)}% → ${n1(agora)}%</div></div>`;
+  };
+  /* A conta do modelo: só os dois finalistas. No 1º turno, nas mesmas
+   * cidades, quanto Flávio tinha contra Lula entre os votos dos dois? Agora,
+   * quanto tem? A diferença diz se a vantagem de quem lidera cresceu ou
+   * encolheu — o "swing" que o algoritmo mede estado por estado a partir
+   * das 17h. Só vale para o exterior: são 0,6% do eleitorado, com o Japão
+   * pesando muito, e não dá para estender ao Brasil. */
+  const vantagem = (pl2, pt2, pl1, pt1, n1Pl, n1Pt) => {
+    if (!(pl1 + pt1 > 0) || !(pl2 + pt2 > 0)) return "";
+    const m1 = 100 * (pl1 - pt1) / (pl1 + pt1), m2 = 100 * (pl2 - pt2) / (pl2 + pt2);
+    const lider1 = m1 >= 0 ? n1Pl : n1Pt, lider2 = m2 >= 0 ? n1Pl : n1Pt;
+    const mudou = Math.abs(m2) - Math.abs(m1);
+    const frase = lider1 !== lider2
+      ? `<b>virou</b>: no 1º turno ${lider1} estava à frente nessas cidades; agora é ${lider2}`
+      : `a vantagem de ${lider2} <b>${mudou >= 0 ? "aumentou" : "diminuiu"} ${n1(Math.abs(mudou))} pontos</b>`;
+    return `<div class="vant"><div class="vt">Só entre os dois, como o algoritmo calcula</div>`
+      + `<div class="vl"><span>1º turno<b>${lider1} +${n1(Math.abs(m1))}</b></span><span class="seta">→</span>`
+      + `<span>agora<b>${lider2} +${n1(Math.abs(m2))}</b></span></div>`
+      + `<div class="vf">No exterior, ${frase}. Isso não se estende ao Brasil: o exterior é 0,6% do `
+      + `eleitorado e vota diferente. A projeção nacional começa às 17h.</div></div>`;
+  };
+  const pPl = v ? 100 * pl / v : null;
+  $("extResumo").innerHTML = (v
+    ? `<div class="ext-placar placar">`
+      + `<div class="lado pl"><div class="quem"><span class="avatar">FB</span><div class="nome">${nPl}</div></div>`
+      + `<div class="pct">${n1(pPl)}%</div><div class="faixa">${mil(pl)} votos</div></div>`
+      + `<div class="lado pt dir"><div class="quem"><span class="avatar">L</span><div class="nome">${nPt}</div></div>`
+      + `<div class="pct">${n1(100 - pPl)}%</div><div class="faixa">${mil(pt)} votos</div></div></div>`
+      + `<div class="barra"><i style="width:${pPl}%;background:linear-gradient(90deg,#1D4ED8,#60A5FA)"></i>`
+      + `<i style="width:${100 - pPl}%;background:linear-gradient(90deg,#F87171,#B91C1C)"></i></div>`
+      + `<div class="meio"><span>50%</span></div>`
+      + `<div class="ext-vence"><span>🔵 ${nPl} à frente em ${vencePl} ${vencePl === 1 ? "país" : "países"}</span>`
+      + `<span>🔴 ${nPt} à frente em ${vencePt} ${vencePt === 1 ? "país" : "países"}</span></div>`
+    : `<div class="faixa" style="color:rgba(255,255,255,.78)">Ainda não há voto do exterior. `
+      + `Os primeiros chegam quando as seções da Ásia e da Oceania fecham.</div>`)
+    + `<div class="ext-stats">`
     + `<div><b>${mil(te)}</b><span>eleitores no exterior</span></div>`
-    + `<div><b>${ts ? n1(100 * st / ts) : "0,0"}%</b><span>${ext.modo === "bu" ? "das urnas com boletim publicado" : "das urnas apuradas"} (${mil(st)} de ${mil(ts)})</span></div>`
-    + `<div><b>${v ? `<span style="color:var(--pl)">${n1(100 * pl / v)}</span> × <span style="color:var(--pt)">${n1(100 * pt / v)}</span>` : "—"}</b>`
-    + `<span>${nPl} × ${nPt} no exterior (válidos)</span></div></div>`
-    + (compara && v && t1v ? `<div class="cmp-tot">Em relação ao <b>1º turno</b>, nas mesmas cidades:`
-      + chips(pl, pt, t1pl, t1pt, t1v) + `<div class="faixa" style="margin-top:6px">No 1º turno havia `
-      + `outros candidatos; no 2º, os votos deles se dividem entre os dois — por isso os dois `
-      + `costumam subir. Os números são pontos percentuais dos votos válidos.</div></div>` : "");
-  const lista = [...porPais.values()].sort((a, b) =>
+    + `<div><b>${mil(st)}<small style="font-size:.6em;opacity:.7"> / ${mil(ts)}</small></b>`
+    + `<span>${ext.modo === "bu" ? "urnas com boletim publicado" : "urnas apuradas"}</span></div>`
+    + `<div><b>${comVoto.length}<small style="font-size:.6em;opacity:.7"> / ${lista.length}</small></b>`
+    + `<span>países com voto contado</span></div></div>`
+    + (compara && v && t1v
+      ? `<div class="ext-1t"><div class="t">Comparado ao 1º turno · mesmas cidades</div>`
+        + `<div class="linhas">${dif(100 * pl / v, 100 * t1pl / t1v, nPl)}${dif(100 * pt / v, 100 * t1pt / t1v, nPt)}</div>`
+        + vantagem(pl, pt, t1pl, t1pt, nPl, nPt)
+        + `<div class="ex">Pontos percentuais dos votos válidos. No 1º turno havia outros `
+        + `candidatos; no 2º os votos deles se dividem entre os dois — por isso os dois costumam subir.</div></div>`
+      : "");
+
+  // Lista por país.
+  $("cartaoExtPaises").hidden = false;
+  $("extConta").textContent = comVoto.length + " de " + lista.length + " países com voto";
+  let mostrar = lista.slice().sort((a, b) =>
     ((b.pl + b.pt > 0) - (a.pl + a.pt > 0)) || (b.te - a.te));
-  const mostrar = ext.todos ? lista : lista.slice(0, 12);
+  if (ext.filtro === "pl") mostrar = mostrar.filter((p) => p.pl > p.pt);
+  if (ext.filtro === "pt") mostrar = mostrar.filter((p) => p.pt > p.pl);
+  const total = mostrar.length;
+  if (!ext.todos) mostrar = mostrar.slice(0, 12);
+  const chip = (cls, nome, agora, antes) => {
+    const d = agora - antes;
+    return `<span class="ch ${cls}">${nome} <b>${d >= 0 ? "▲ +" : "▼ −"}${n1(Math.abs(d))}</b>`
+      + ` <em>era ${n1(antes)}%</em></span>`;
+  };
   $("extLista").innerHTML = mostrar.map((p) => {
     const vv = p.pl + p.pt;
     const pp = vv ? 100 * p.pl / vv : null;
-    const apu = p.ts ? 100 * p.st / p.ts : 0;
-    return `<div class="ext"><div><div class="p">${esc(p.nome)}</div>`
-      + `<div class="d">${mil(p.te)} eleitores · ${p.cidades} ${p.cidades === 1 ? "cidade" : "cidades"}`
-      + ` · ${ext.modo === "bu" ? p.st + " de " + p.ts + " urnas com boletim" : n1(apu) + "% das urnas apuradas"}</div></div>`
-      + `<div class="v">${pp == null ? '<span style="color:var(--fraco)">aguardando</span>'
-        : `<span class="a">${n1(pp)}%</span> × <span class="b">${n1(100 - pp)}%</span>`
-          + `<small>${mil(p.pl)} × ${mil(p.pt)} votos</small>`}</div>`
-      + (pp == null ? "" : `<div class="mini"><i style="width:${pp}%;background:var(--pl)"></i>`
-        + `<i style="width:${100 - pp}%;background:var(--pt)"></i></div>`)
-      + chips(p.pl, p.pt, p.t1pl, p.t1pt, p.t1v)
+    const lidera = pp == null ? null : pp >= 50 ? "pl" : "pt";
+    const urnas = ext.modo === "bu"
+      ? `${p.st}/${p.ts} ${p.ts === 1 ? "urna" : "urnas"}`
+      : `${n1(p.ts ? 100 * p.st / p.ts : 0)}% apurado`;
+    return `<div class="pais${pp == null ? " vazio-pais" : ""}">`
+      + `<div class="bandeira" aria-hidden="true">${bandeira(p.nome)}</div>`
+      + `<div><div class="p">${esc(p.nome)}</div>`
+      + `<div class="d">${mil(p.te)} eleitores · ${urnas}</div></div>`
+      + (pp == null ? `<div class="r" style="color:var(--fraco);font-size:13px">aguardando</div>`
+        : `<div class="r" style="color:var(--${lidera})">${n1(lidera === "pl" ? pp : 100 - pp)}%`
+          + `<small>${lidera === "pl" ? nPl : nPt}</small></div>`
+          + `<div class="barra2"><i style="width:${pp}%;background:var(--pl)"></i>`
+          + `<i style="width:${100 - pp}%;background:var(--pt)"></i></div>`
+          + `<div class="nums"><span class="a">${nPl} ${n1(pp)}% · ${mil(p.pl)}</span>`
+          + `<span class="b">${mil(p.pt)} · ${n1(100 - pp)}% ${nPt}</span></div>`
+          + (compara && p.t1v
+            ? `<div class="cmp">${chip("pl", nPl, pp, 100 * p.t1pl / p.t1v)}`
+              + `${chip("pt", nPt, 100 - pp, 100 * p.t1pt / p.t1v)}</div>` : ""))
       + `</div>`;
-  }).join("");
-  $("btExtTodos").hidden = lista.length <= 12;
-  $("btExtTodos").textContent = ext.todos ? "Mostrar só os 12 maiores" : "Ver todos os " + lista.length + " países";
+  }).join("") || '<div class="vazio">Nenhum país nesse filtro ainda.</div>';
+  $("btExtTodos").hidden = total <= 12;
+  $("btExtTodos").textContent = ext.todos ? "Mostrar só os 12 primeiros" : "Ver todos os " + total + " países";
 }
+
+document.querySelectorAll("#extFiltro button").forEach((b) => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#extFiltro button").forEach((x) => x.classList.toggle("ativo", x === b));
+    ext.filtro = b.dataset.f;
+    pintaExterior();
+  });
+});
 
 $("btExtCarregar").addEventListener("click", () => {
   ext.aberto = true;
@@ -4265,7 +4385,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=75fc327d67").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=2a15cb365c").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
