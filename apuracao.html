@@ -842,6 +842,39 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 .pais-sh{grid-column:1 / -1;justify-self:end;font:inherit;font-size:12.5px;font-weight:850;cursor:pointer;
   color:var(--texto);background:var(--superficie);border:1px solid var(--linha-forte);border-radius:999px;padding:6px 12px}
 .pais-sh:hover{border-color:var(--texto)}
+/* ---------- detalhe do estado ---------- */
+.uf-linha{cursor:pointer;transition:border-color .15s,transform .15s}
+.uf-linha:hover{border-color:var(--linha-forte);transform:translateY(-1px)}
+.ufCaixa{background:var(--superficie);color:var(--texto);border-radius:22px;width:min(560px,100%);
+  overflow:hidden;box-shadow:0 30px 60px -20px rgba(0,0,0,.8)}
+.ufTopo{background:
+    radial-gradient(120% 90% at 0% 0%,color-mix(in srgb,var(--pl) 22%,transparent),transparent 55%),
+    radial-gradient(120% 90% at 100% 0%,color-mix(in srgb,var(--pt) 22%,transparent),transparent 55%),
+    linear-gradient(180deg,var(--painel-2),var(--painel));color:#fff;padding:18px 18px 16px;position:relative}
+.ufTopo .x{position:absolute;right:10px;top:8px;background:none;border:0;color:#fff;font-size:26px;cursor:pointer}
+.ufTopo h3{margin:2px 0 0;font:700 30px/1.1 "Zilla Slab",Georgia,serif}
+.ufTopo .rotulo{color:rgba(255,255,255,.6)}
+.ufTopo .sub{font-size:13px;color:rgba(255,255,255,.7);font-weight:700;margin-top:4px}
+.ufNums{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.ufNums>div{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:9px 11px;min-width:0}
+.ufNums .t{font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.65)}
+.ufNums .v{font-size:clamp(17px,5.4vw,22px);font-weight:900;letter-spacing:-.02em;margin-top:2px;white-space:nowrap}
+.ufNums .v .a{color:#A9CAFF} .ufNums .v .b{color:#FFADA6}
+.ufCorpo{padding:16px 18px 18px}
+.ufCorpo h4{margin:0 0 8px;font-size:12px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--fraco)}
+.ufGraf{width:100%;height:120px;display:block;background:var(--superficie-2);border-radius:12px;border:1px solid var(--linha)}
+.cidades{display:grid;gap:8px;margin-top:6px}
+.cid{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:10px 12px;border-radius:14px;
+  background:var(--superficie-2);border:1px solid var(--linha)}
+.cid .n{font-weight:900;font-size:15px}
+.cid .n small{font-size:10.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:#B9831F;margin-left:6px}
+.cid .d{font-size:11.5px;color:var(--fraco);font-weight:750}
+.cid .v{text-align:right;font-weight:900;font-size:15px;white-space:nowrap}
+.cid .v .a{color:var(--pl)} .cid .v .b{color:var(--pt)}
+.cid .mini{grid-column:1 / -1;height:8px;border-radius:999px;overflow:hidden;display:flex;gap:2px;background:var(--linha)}
+.cid .mini i{display:block;height:100%}
+.ufAcoes{display:grid;gap:8px;margin-top:14px}
+
 </style>
 </head>
 <body>
@@ -1130,6 +1163,8 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
         <button data-o="vantagem">Maior vantagem</button>
         <button data-o="az">A–Z</button>
       </div></div>
+    <div class="faixa" style="margin:-4px 0 12px"><strong>Toque num estado</strong> para ver a
+      evolução dele na apuração, a capital e as duas maiores cidades — e compartilhar.</div>
     <div class="estados" id="estados"><div class="vazio">—</div></div>
     <div style="text-align:center;margin-top:12px">
       <button class="bt-sec" id="btEstadosTodos" hidden>Ver todos os estados</button></div>
@@ -1267,6 +1302,12 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
         <button class="bt-sec" id="btCardEstado">Card do estado</button>
       </div>
       <div class="faixa" id="cardLugarMsg" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <div class="cardModal" id="ufModal" hidden>
+    <div class="cm-caixa" style="flex-direction:column;justify-content:flex-start;padding-top:10px">
+      <div class="ufCaixa" id="ufCaixa"></div>
     </div>
   </div>
 
@@ -2947,6 +2988,8 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
   // divisão projetada, o fio verde abaixo mostra o quanto já apurou. Ler
   // quem está ganhando onde vira questão de olhar, não de comparar números.
   renderEstados(r);
+  if (DEMO === null) registrarUFs(r);
+  if (ufAberta) atualizarEstado();
   renderRegioes(r);
   renderSaldo(r);
   renderFalta(r, votosPl, votosPt);
@@ -3679,6 +3722,58 @@ function cardPais(ctx, d) {
     : "Parcial: boletins de urna publicados pelo TSE · não é a totalização");
 }
 
+function cardEstado(ctx, d) {
+  fundo(ctx, null, 340);
+  marca(ctx, "ESTADO · " + d.uf);
+  tx(ctx, "COMO ESTÁ A APURAÇÃO EM", CW / 2, 280, 32, 900, OURO, "center", 5);
+  txCabe(ctx, d.nome, CW / 2, 410, 130, 700, MARFIM, CW - 140, "center", SLAB);
+  const e = d.e;
+  tx(ctx, e ? n1(e.pctApurado) + "% apurado no estado" : "", CW / 2, 470, 34, 800, "rgba(251,248,241,.72)", "center");
+  blocoDuelo(ctx, 530, 260, "OFICIAL DO TSE AGORA", e && e.obsPl, false, "");
+  blocoDuelo(ctx, 840, 330, "PROJEÇÃO FINAL DO ESTADO", e && e.projPl, true, "");
+  let y = 1230;
+  tx(ctx, "CAPITAL E MAIORES CIDADES", 100, y, 26, 900, OURO, "left", 5);
+  y += 10;
+  for (const c of d.cid) {
+    y += 84;
+    rr(ctx, 70, y - 58, CW - 140, 74, 20); ctx.fillStyle = "rgba(251,248,241,.06)"; ctx.fill();
+    txCabe(ctx, c.nome + (c.capital ? "  ★" : ""), 100, y - 12, 32, 900, MARFIM, 420);
+    tx(ctx, c.pPl == null ? "aguardando" : n1(c.apu) + "% das seções", 100, y + 10, 21, 750, "rgba(251,248,241,.55)");
+    if (c.pPl != null) {
+      rr(ctx, 540, y - 30, 170, 12, 6); ctx.fillStyle = "rgba(251,248,241,.12)"; ctx.fill();
+      ctx.save(); rr(ctx, 540, y - 30, 170, 12, 6); ctx.clip();
+      ctx.fillStyle = AZUL; ctx.fillRect(540, y - 30, 170 * c.pPl / 100 - 1, 12);
+      ctx.fillStyle = VERM; ctx.fillRect(540 + 170 * c.pPl / 100 + 1, y - 30, 170, 12);
+      ctx.restore();
+      const lPl = c.pPl >= 50;
+      tx(ctx, (lPl ? nomes.pl : nomes.pt).split(" ")[0] + " " + n1(lPl ? c.pPl : 100 - c.pPl) + "%",
+        CW - 100, y - 10, 30, 900, lPl ? "#A9CAFF" : "#FFADA6", "right");
+    }
+  }
+  // Evolução do estado ao longo da apuração (% de Flávio).
+  const h = d.hist || [];
+  if (h.length >= 2) {
+    const yT = y + 70, x0 = 100, x1 = CW - 100, y0 = yT + 20, y1 = yT + 130;
+    tx(ctx, "AO LONGO DA APURAÇÃO", 100, yT, 24, 900, OURO, "left", 4);
+    tx(ctx, "— projeção   - - oficial TSE", CW - 100, yT, 20, 800, "rgba(251,248,241,.6)", "right");
+    const vals = h.flatMap((p) => [p[1], p[2]]);
+    let lo = Math.min(...vals, 48), hi = Math.max(...vals, 52);
+    const pad = (hi - lo) * 0.12 || 1; lo -= pad; hi += pad;
+    const X = (p) => x0 + (x1 - x0) * p / 100, Y = (v) => y1 - (y1 - y0) * (v - lo) / (hi - lo);
+    ctx.save(); ctx.setLineDash([10, 8]); ctx.strokeStyle = "rgba(251,248,241,.3)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x0, Y(50)); ctx.lineTo(x1, Y(50)); ctx.stroke(); ctx.restore();
+    const linha = (k, cor, tr) => {
+      ctx.save(); if (tr) ctx.setLineDash([10, 9]);
+      ctx.strokeStyle = cor; ctx.lineWidth = 5; ctx.lineJoin = "round"; ctx.beginPath();
+      h.forEach((p, j) => { const px = X(p[0]), py = Y(p[k]); if (j) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
+      ctx.stroke(); ctx.restore();
+    };
+    linha(1, "rgba(251,248,241,.6)", true);
+    linha(2, "#7DB2FF", false);
+  }
+  rodape(ctx, "Siga " + PERFIL);
+}
+
 function cardAuditoria(ctx) {
   fundo(ctx, "rgba(52,211,153,.12)");
   marca(ctx, "AUDITORIA");
@@ -3726,6 +3821,7 @@ async function desenharCard(def) {
   else if (def.tipo === "pesquisas") cardPesquisas(ctx, def);
   else if (def.tipo === "exterior") cardExterior(ctx, def);
   else if (def.tipo === "pais") cardPais(ctx, def);
+  else if (def.tipo === "estado") cardEstado(ctx, def);
   return cv;
 }
 
@@ -3831,6 +3927,10 @@ function textoCard(def) {
     return `${n1(def.pct)}% apurado · Oficial TSE: ${nPl} ${n1(def.of)}% × ${nPt} ${n1(100 - def.of)}%`
       + ` · Projeção: ${nPl} ${n1(def.pr)}% × ${nPt} ${n1(100 - def.pr)}%. `
       + `Ao vivo: https://${SITE}/ · ${PERFIL}`;
+  }
+  if (def.tipo === "estado" && def.e) {
+    return `${def.nome}, ${n1(def.e.pctApurado)}% apurado · Oficial TSE: ${nPl} ${n1(def.e.obsPl)}% × `
+      + `${nPt} ${n1(100 - def.e.obsPl)}% · Projeção: ${nPl} ${n1(def.e.projPl)}%. Ao vivo: https://${SITE}/ · ${PERFIL}`;
   }
   if (def.tipo === "exterior" || def.tipo === "pais") {
     return `${def.tipo === "pais" ? def.nome : "Exterior"}: ${nPl} ${n1(def.pPl)}% × ${nPt} `
@@ -4513,6 +4613,154 @@ $("extLista").addEventListener("click", (ev) => {
     vant: ext.ultimo.compara ? vantTexto(p.pl, p.pt, p.t1pl, p.t1pt) : "" });
 });
 
+/* ---- detalhe de cada estado ------------------------------------------------
+ *
+ * Toque num estado da lista: abre o placar dele (oficial do TSE e projeção),
+ * a trajetória da noite naquele estado e as três cidades que mais pesam — a
+ * capital e as duas maiores depois dela —, com o resultado oficial de cada
+ * uma lido do TSE. Dá para compartilhar tudo num card. */
+const CAPITAIS = {"ac":"01392","al":"27855","ap":"06050","am":"02550","ba":"38490","ce":"13897",
+  "df":"97012","es":"57053","go":"93734","ma":"09210","mt":"90670","ms":"90514","mg":"41238",
+  "pa":"04278","pb":"20516","pr":"75353","pe":"25313","pi":"12190","rj":"60011","rn":"17612",
+  "rs":"88013","ro":"00035","rr":"03018","sc":"81051","sp":"71072","se":"31054","to":"73440"};
+
+// Trajetória por estado: [apurado, % oficial de Flávio, % projetado de
+// Flávio], gravada no aparelho a cada meio ponto de apuração do estado.
+const CHAVE_HUF = "hist-uf-" + TURNO;
+const histUF = (() => { try { return JSON.parse(localStorage.getItem(CHAVE_HUF) || "{}"); } catch { return {}; } })();
+let ultimoSalvoHUF = 0;
+function registrarUFs(r, salvar = true) {
+  let mudou = false;
+  for (const e of r.estados) {
+    if (e.obsPl == null || !(e.pctApurado > 0)) continue;
+    const l = histUF[e.uf] || (histUF[e.uf] = []);
+    const ult = l[l.length - 1];
+    if (!ult || e.pctApurado >= ult[0] + 0.5 || (e.pctApurado >= 99.9 && ult[0] < 99.9)) {
+      l.push([+e.pctApurado.toFixed(2), +e.obsPl.toFixed(2), +e.projPl.toFixed(2)]);
+      mudou = true;
+    }
+  }
+  if (salvar && mudou && Date.now() - ultimoSalvoHUF > 20000) {
+    ultimoSalvoHUF = Date.now();
+    try { localStorage.setItem(CHAVE_HUF, JSON.stringify(histUF)); } catch {}
+  }
+}
+
+function cidadesDoEstado(uf) {
+  const u = uf.toLowerCase();
+  const idx = modelo.indicesPorUf.get(u) || [];
+  const cap = CAPITAIS[u];
+  const lista = [];
+  const iCap = idx.find((i) => modelo.cd[i] === cap);
+  if (iCap !== undefined) lista.push({ i: iCap, capital: true });
+  const maiores = idx.filter((i) => i !== iCap).sort((a, b) => modelo.eleitorado[b] - modelo.eleitorado[a]);
+  for (const i of maiores.slice(0, 3 - lista.length)) lista.push({ i, capital: false });
+  return lista;
+}
+
+let ufAberta = null;
+const ufCidades = new Map();
+
+$("estados").addEventListener("click", (ev) => {
+  const l = ev.target.closest(".uf-linha");
+  if (l && l.dataset.uf && l.dataset.uf !== "ZZ") abrirEstado(l.dataset.uf);
+  else if (l && l.dataset.uf === "ZZ") $("cartaoExterior").scrollIntoView({ behavior: "smooth" });
+});
+$("estados").addEventListener("keydown", (ev) => {
+  if (ev.key === "Enter") { const l = ev.target.closest(".uf-linha"); if (l) l.click(); }
+});
+$("ufModal").addEventListener("click", (ev) => {
+  if (ev.target === $("ufModal") || ev.target.closest(".x")) { $("ufModal").hidden = true; ufAberta = null; }
+});
+
+async function abrirEstado(uf) {
+  ufAberta = uf;
+  $("ufModal").hidden = false;
+  $("ufModal").scrollTop = 0;
+  atualizarEstado();
+  await lerCidadesEstado(uf);
+  if (ufAberta === uf) atualizarEstado();
+}
+
+async function lerCidadesEstado(uf) {
+  const eleicao = DEMO !== null ? tse.ELEICAO_1T : TURNO;
+  await Promise.all(cidadesDoEstado(uf).map(async ({ i }) => {
+    try {
+      const o = await tse.lerMunicipio(eleicao, modelo.uf[i], modelo.cd[i]);
+      ufCidades.set(i, Object.assign(o, { t: Date.now() }));
+    } catch {}
+  }));
+}
+
+function dadosEstado(uf) {
+  const r = ultimoR;
+  const e = r && r.estados ? r.estados.find((x) => x.uf === uf) : null;
+  const cid = cidadesDoEstado(uf).map(({ i, capital }) => {
+    const o = ufCidades.get(i);
+    const v = o ? o.pl + o.pt : 0;
+    return { nome: titulo(modelo.nm[i]), capital, ele: modelo.eleitorado[i],
+      pPl: v ? 100 * o.pl / v : null, vPl: o ? o.pl : 0, vPt: o ? o.pt : 0,
+      apu: o ? o.pctSecoes : 0 };
+  });
+  return { uf, nome: NOMES_UF[uf] || uf, e, cid, hist: histUF[uf] || [] };
+}
+
+function graficoUF(hist) {
+  if (hist.length < 2) return '<div class="faixa" style="padding:14px;text-align:center;background:var(--superficie-2);'
+    + 'border-radius:12px;border:1px solid var(--linha)">A trajetória aparece aqui conforme o estado for apurando '
+    + '(com esta página aberta).</div>';
+  const W = 520, H = 120;
+  const vals = hist.flatMap((h) => [h[1], h[2]]);
+  let lo = Math.min(...vals, 48), hi = Math.max(...vals, 52);
+  const pad = (hi - lo) * 0.12; lo -= pad; hi += pad;
+  const X = (p) => (p / 100) * W, Y = (v) => H - ((v - lo) / (hi - lo)) * H;
+  const linha = (k, cor, extra) => `<polyline points="${hist.map((h) => X(h[0]).toFixed(1) + "," + Y(h[k]).toFixed(1)).join(" ")}"
+    fill="none" stroke="${cor}" stroke-width="2.5" vector-effect="non-scaling-stroke" ${extra}/>`;
+  return `<svg class="ufGraf" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`
+    + `<line x1="0" x2="${W}" y1="${Y(50)}" y2="${Y(50)}" stroke="var(--linha-forte)" stroke-dasharray="5 4" vector-effect="non-scaling-stroke"/>`
+    + linha(1, "var(--fraco)", 'stroke-dasharray="5 5" opacity=".7"') + linha(2, "var(--pl)", "")
+    + `</svg><div class="legenda"><span><i style="background:var(--pl)"></i>Projeção (Flávio)</span>`
+    + `<span><i style="background:var(--fraco)"></i>Oficial TSE (Flávio)</span><span>eixo: % apurado do estado</span></div>`;
+}
+
+function atualizarEstado() {
+  const uf = ufAberta;
+  if (!uf) return;
+  const d = dadosEstado(uf);
+  const nPl = esc(nomes.pl.split(" ")[0]), nPt = esc(nomes.pt.split(" ")[0]);
+  const e = d.e;
+  const temDado = e && e.obsPl != null;
+  const par = (v) => v == null ? "—" : `<span class="a">${n1(v)}</span> × <span class="b">${n1(100 - v)}</span>`;
+  $("ufCaixa").innerHTML = `<div class="ufTopo"><button class="x" aria-label="Fechar">&times;</button>`
+    + `<span class="rotulo">Estado</span><h3>${esc(d.nome)}</h3>`
+    + `<div class="sub">${e ? n1(e.pctApurado) + "% apurado" : "aguardando a apuração"}</div>`
+    + `<div class="ufNums"><div><div class="t">Oficial TSE agora</div><div class="v">${temDado ? par(e.obsPl) : "—"}</div></div>`
+    + `<div><div class="t">Projeção final</div><div class="v">${e && ultimoR && ultimoR.pctApurado > 0.05 ? par(e.projPl) : "—"}</div></div></div>`
+    + `<div class="faixa" style="color:rgba(255,255,255,.6);margin-top:8px">${nPl} × ${nPt}, % dos votos válidos</div></div>`
+    + `<div class="ufCorpo"><h4>Ao longo da apuração</h4>${graficoUF(d.hist)}`
+    + `<h4 style="margin-top:16px">Capital e maiores cidades</h4><div class="cidades">`
+    + d.cid.map((c) => `<div class="cid"><div><div class="n">${esc(c.nome)}${c.capital ? "<small>capital</small>" : ""}</div>`
+      + `<div class="d">${c.ele.toLocaleString("pt-BR")} eleitores · ${c.pPl == null ? "aguardando" : n1(c.apu) + "% das seções"}</div></div>`
+      + `<div class="v">${c.pPl == null ? '<span style="color:var(--fraco)">—</span>'
+        : `<span class="a">${n1(c.pPl)}%</span> × <span class="b">${n1(100 - c.pPl)}%</span>`}</div>`
+      + (c.pPl == null ? "" : `<div class="mini"><i style="width:${c.pPl}%;background:var(--pl)"></i>`
+        + `<i style="width:${100 - c.pPl}%;background:var(--pt)"></i></div>`) + `</div>`).join("")
+    + `</div><div class="faixa" style="margin-top:8px">Cidades: resultado oficial do TSE, município a município`
+    + (DEMO !== null ? " (ensaio: 1º turno)" : "") + `.</div>`
+    + `<div class="ufAcoes"><button class="bt-ouro" id="btUFCard"${temDado ? "" : " disabled"}>Compartilhar ${esc(d.nome)} no Instagram / WhatsApp</button></div></div>`;
+  const bt = $("btUFCard");
+  if (bt) bt.onclick = () => abrirCard(Object.assign({ tipo: "estado" }, dadosEstado(uf)));
+  // As cidades são relidas no máximo a cada 25 s, enquanto o estado está aberto.
+  const velho = d.cid.some((c, k) => { const i = cidadesDoEstado(uf)[k].i; const o = ufCidades.get(i); return !o || Date.now() - o.t > AO_VIVO; });
+  if (velho && !atualizarEstado.lendo && ultimoR && ultimoR.pctApurado > 0.05) {
+    atualizarEstado.lendo = true;
+    lerCidadesEstado(uf).finally(() => { atualizarEstado.lendo = false; if (ufAberta === uf) atualizarEstadoSemLer(); });
+  }
+}
+function atualizarEstadoSemLer() {
+  const l = atualizarEstado.lendo; atualizarEstado.lendo = true; atualizarEstado(); atualizarEstado.lendo = l;
+}
+
 /* ---- estados, regiões, saldo, quanto falta ------------------------------ */
 let ordemEstados = "apurado";
 let ultimoPintado = null;
@@ -4545,7 +4793,7 @@ function renderEstados(r) {
     const lado = !temDado ? "sd" : pl > 50 ? "pl" : "pt";
     const cor = pl > 50 ? "var(--pl)" : "var(--pt)";
     const sigla = e.uf === "ZZ" ? "EXT" : esc(e.uf);
-    return "<div class='uf-linha'>"
+    return "<div class='uf-linha' role='button' tabindex='0' data-uf='" + esc(e.uf) + "'>"
       + "<div class='uf-sigla " + lado + "'>" + sigla + "</div>"
       + "<div>"
       // Sem urna contada, a barra fica apagada: o número ali é estimativa
@@ -5340,6 +5588,7 @@ async function tickDemo() {
         ac += base.ele[i];
         while (k <= alvoK && ac >= (k / 100) * total) {
           const r = modelo.projetar(fr, ob, 60);
+          registrarUFs(r, false);   // trajetória por estado do ensaio (não é gravada)
           const p = pontoRegistro(r, "", vp, vt, k >= 100 ? 100 : k);
           p.t = Date.UTC(2026, 9, 25, 20, 5) + k * 90000;   // horário de faz de conta
           pts.push(p);
