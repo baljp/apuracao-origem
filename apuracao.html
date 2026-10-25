@@ -2802,8 +2802,6 @@ const TURNO = new URLSearchParams(location.search).get("turno") === "1"
 
 const $ = (id) => document.getElementById(id);
 const n1 = (v) => (v == null || isNaN(v)) ? "—" : v.toFixed(1).replace(".", ",");
-/* Porcentagem apurada com duas casas, como o TSE publica (0,25%, e não 0,3%). */
-const n2 = (v) => (v == null || isNaN(v)) ? "—" : v.toFixed(2).replace(".", ",");
 // Duas casas, para os números que o site calcula (média, margem, erro): ali a
 // diferença entre 50,4 e 50,44 pode ser a diferença entre parecer empate e
 // parecer vantagem.

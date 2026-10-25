@@ -1681,8 +1681,6 @@ const TURNO = new URLSearchParams(location.search).get("turno") === "1"
 
 const $ = (id) => document.getElementById(id);
 const n1 = (v) => (v == null || isNaN(v)) ? "—" : v.toFixed(1).replace(".", ",");
-/* Porcentagem apurada com duas casas, como o TSE publica (0,25%, e não 0,3%). */
-const n2 = (v) => (v == null || isNaN(v)) ? "—" : v.toFixed(2).replace(".", ",");
 // Duas casas, para os números que o site calcula (média, margem, erro): ali a
 // diferença entre 50,4 e 50,44 pode ser a diferença entre parecer empate e
 // parecer vantagem.
@@ -5692,7 +5690,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=8329bdadba").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=9cb1440052").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
