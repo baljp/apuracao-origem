@@ -156,7 +156,7 @@ export async function lerResultados(eleicao) {
       totais.eleitorado += num(e.te);
       totais.secoes += num(s.ts);
       totais.secoesApuradas += num(s.st);
-      totais.porUf[uf] = [num(e.a), num(e.c), num(v.vb) + num(v.tvn)];
+      totais.porUf[uf] = [num(e.a), num(e.c), num(v.vb) + num(v.tvn), num(s.st), num(s.ts)];
       // Horário em que o TSE gerou o arquivo — mais fiel que a hora local
       // de quem está olhando.
       if (doc.ht) {

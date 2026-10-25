@@ -2115,7 +2115,7 @@ async function lerResultados(eleicao) {
       totais.eleitorado += num(e.te);
       totais.secoes += num(s.ts);
       totais.secoesApuradas += num(s.st);
-      totais.porUf[uf] = [num(e.a), num(e.c), num(v.vb) + num(v.tvn)];
+      totais.porUf[uf] = [num(e.a), num(e.c), num(v.vb) + num(v.tvn), num(s.st), num(s.ts)];
       // Horário em que o TSE gerou o arquivo — mais fiel que a hora local
       // de quem está olhando.
       if (doc.ht) {
@@ -2806,11 +2806,16 @@ const TURNO = new URLSearchParams(location.search).get("turno") === "1"
   ? tse.ELEICAO_1T : tse.ELEICAO_2T;
 
 const $ = (id) => document.getElementById(id);
-const n1 = (v) => (v == null || isNaN(v)) ? "—" : v.toFixed(1).replace(".", ",");
+// Duas casas, cortando (sem arredondar), como o TSE publica: 57,66% e não 57,7%.
+const n1 = (v) => {
+  if (v == null || isNaN(v)) return "—";
+  const c = Math.trunc(Math.round(v * 1e6) / 1e4) / 100;
+  return c.toFixed(2).replace(".", ",");
+};
 // Duas casas, para os números que o site calcula (média, margem, erro): ali a
 // diferença entre 50,4 e 50,44 pode ser a diferença entre parecer empate e
 // parecer vantagem.
-const n2 = (v) => (v == null || isNaN(v)) ? "—" : v.toFixed(2).replace(".", ",");
+const n2 = n1;
 
 // Para os valores publicados pelas pesquisas, mostra exatamente a precisão
 // que o instituto deu: 48 continua "48", 40,62 continua "40,62". Escrever
@@ -2960,6 +2965,12 @@ async function tick() {
       $("nomePT").textContent = nomes.pt;
     }
     const r = modelo.projetar(fracoes, observado, 240);
+    // O "% apurado" de cada estado que aparece na tela é o do TSE (seções
+    // totalizadas sobre o total), não a fração de eleitorado do modelo.
+    for (const e of r.estados) {
+      const x = totais && totais.porUf && totais.porUf[e.uf.toLowerCase()];
+      if (x && x[4] > 0) e.pctApurado = 100 * x[3] / x[4];
+    }
     pinta(r, falhas, totais, horaTSE, observado, dispersao);
     if (!jaLeuTSE) carregarHistorico();
     jaLeuTSE = true;
@@ -3770,10 +3781,13 @@ function blocoDuelo(ctx, y, h, titulo, pPl, destaque, rodapeTxt) {
     const yn = y + 222;
     tx(ctx, nPl, 104, y + 92, 34, 900, AZUL_F, "left", 4);
     tx(ctx, nPt, CW - 104, y + 92, 34, 900, VERM_F, "right", 4);
-    tx(ctx, pPl == null ? "—" : n1(pPl) + "%", 98, yn, 132, 900,
-      gradTexto(ctx, 98, 500, "#1E40AF", "#3B82F6"));
-    tx(ctx, pPl == null ? "—" : n1(100 - pPl) + "%", CW - 98, yn, 132, 900,
-      gradTexto(ctx, CW - 500, CW - 98, "#EF4444", "#991B1B"), "right");
+    // Com duas casas decimais o número fica mais largo: o tamanho se ajusta
+    // para os dois lados nunca se encostarem.
+    const tA = pPl == null ? "—" : n1(pPl) + "%", tB = pPl == null ? "—" : n1(100 - pPl) + "%";
+    let tam = 132;
+    while (tam > 70 && Math.max(largura(ctx, tA, tam, 900), largura(ctx, tB, tam, 900)) > (CW - 196) / 2 - 24) tam -= 4;
+    tx(ctx, tA, 98, yn, tam, 900, gradTexto(ctx, 98, 500, "#1E40AF", "#3B82F6"));
+    tx(ctx, tB, CW - 98, yn, tam, 900, gradTexto(ctx, CW - 500, CW - 98, "#EF4444", "#991B1B"), "right");
     if (pPl != null) barraDupla(ctx, 104, yn + 36, CW - 208, 34, pPl, true);
     if (rodapeTxt) tx(ctx, rodapeTxt, CW / 2, Math.max(y + h - 22, yn + 36 + 34 + 34), 27, 850, "rgba(31,42,68,.75)", "center");
     return;
@@ -3785,8 +3799,11 @@ function blocoDuelo(ctx, y, h, titulo, pPl, destaque, rodapeTxt) {
   const yn = y + 206;
   tx(ctx, nPl, 100, y + 104, 30, 900, AZUL, "left", 3);
   tx(ctx, nPt, CW - 100, y + 104, 30, 900, VERM, "right", 3);
-  tx(ctx, pPl == null ? "—" : n1(pPl) + "%", 96, yn, 104, 900, "#A9CAFF");
-  tx(ctx, pPl == null ? "—" : n1(100 - pPl) + "%", CW - 96, yn, 104, 900, "#FFADA6", "right");
+  const tA = pPl == null ? "—" : n1(pPl) + "%", tB = pPl == null ? "—" : n1(100 - pPl) + "%";
+  let tam = 104;
+  while (tam > 60 && Math.max(largura(ctx, tA, tam, 900), largura(ctx, tB, tam, 900)) > (CW - 192) / 2 - 30) tam -= 4;
+  tx(ctx, tA, 96, yn, tam, 900, "#A9CAFF");
+  tx(ctx, tB, CW - 96, yn, tam, 900, "#FFADA6", "right");
   if (pPl != null) barraDupla(ctx, 100, yn + 30, CW - 200, 24, pPl, false);
   if (rodapeTxt) tx(ctx, rodapeTxt, CW / 2, y + h - 26, 26, 800, "rgba(251,248,241,.7)", "center");
 }
@@ -5785,7 +5802,9 @@ function renderRegioes(r, observado, totais, horaTSE) {
         }
       }
     } catch {}
-    R.apu = R.ele ? 100 * R.eleApu / R.ele : 0;
+    { let st = 0, ts = 0;
+      for (const uf of ufs) { const x = porUf[uf]; if (x && x[4] > 0) { st += x[3]; ts += x[4]; } }
+      R.apu = ts > 0 ? 100 * st / ts : (R.ele ? 100 * R.eleApu / R.ele : 0); }
     R.of = R.ofPl + R.ofPt ? 100 * R.ofPl / (R.ofPl + R.ofPt) : null;
     R.pr = R.prPl + R.prPt ? 100 * R.prPl / (R.prPl + R.prPt) : null;
     R.t1 = R.t1a + R.t1b ? 100 * R.t1a / (R.t1a + R.t1b) : null;
