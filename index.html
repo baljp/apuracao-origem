@@ -51,7 +51,7 @@
 <link rel="preload" href="./fonte.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="./fonte.css"></noscript>
 <link rel="modulepreload" href="./modelo.js?v=f6c81420d6">
-<link rel="modulepreload" href="./tse.js?v=0f2af1c9f4">
+<link rel="modulepreload" href="./tse.js?v=0680ad16ea">
 <link rel="modulepreload" href="./pesquisas.js?v=e13eced4df">
 <link rel="preload" href="./base.json" as="fetch" crossorigin>
 <style>
@@ -874,6 +874,9 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 .reg-proj b.a{color:var(--pl)} .reg-proj b.b{color:var(--pt)}
 .reg-info{grid-column:1 / -1;font-size:12px;font-weight:750;color:var(--fraco);line-height:1.4}
 .reg-info b{color:var(--texto)} .reg-info b.a{color:var(--pl)} .reg-info b.b{color:var(--pt)}
+.uf-1t{font-size:12.5px;font-weight:750;color:rgba(255,255,255,.75);margin-top:6px;line-height:1.4}
+.uf-1t b{color:#FFC94D}
+.cid-1t{grid-column:1 / -1;font-size:11.5px;font-weight:750;color:var(--fraco);line-height:1.4;margin-top:2px}
 .reg-intro{font-size:13px;color:var(--fraco);font-weight:650;line-height:1.45;margin:-4px 0 12px}
 .regiao .globo{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:26px;
   background:linear-gradient(135deg,rgba(242,181,68,.22),rgba(242,181,68,.06));border:1px solid rgba(242,181,68,.4)}
@@ -1562,7 +1565,7 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 
 <script type="module">
 import { Modelo } from "./modelo.js?v=f6c81420d6";
-import * as tse from "./tse.js?v=0f2af1c9f4";
+import * as tse from "./tse.js?v=0680ad16ea";
 import * as pq from "./pesquisas.js?v=e13eced4df";
 
 /* Ritmo de atualização.
@@ -1609,7 +1612,7 @@ const DEMO = (() => {
  */
 /* 1º turno por UF: [abstenção, comparecimento, brancos+nulos] (TSE, eleição 6257). */
 const T1_UF = {"ac":[125412,488330,19264],"al":[503698,1938428,119572],"am":[564062,2234549,63786],"ap":[100426,476562,11704],"ba":[2259151,9053601,493310],"ce":[1086074,5910471,292657],"df":[426924,1831396,58588],"es":[639368,2352282,101204],"go":[1109003,3971587,143764],"ma":[1022772,4160343,149904],"mg":[3735098,12637274,661039],"ms":[483210,1541220,50942],"mt":[585668,2052133,58845],"pa":[1195893,5066504,203332],"pb":[564543,2683988,170241],"pe":[1312388,5911062,310045],"pi":[463875,2240883,94489],"pr":[1772200,6841457,256214],"rj":[2997846,9859802,490102],"rn":[488812,2171013,99115],"ro":[274813,991080,23021],"rr":[68749,332772,7227],"rs":[1819642,6702903,279857],"sc":[1086492,4648159,147262],"se":[301053,1439082,74886],"sp":[7690900,26431992,1549044],"to":[216827,965196,34749],"zz":[574345,341766,10884]};
-let ultimoComp = null, ultimoT1 = null;
+let ultimoComp = null, ultimoT1 = null, ultimoTotais = null;
 const ABERTURA = Date.UTC(2026, 9, 25, 19, 55);        // 16h55 de Brasília
 const FECHAMENTO_URNAS = Date.UTC(2026, 9, 25, 20, 0); // 17h00 de Brasília
 
@@ -2046,6 +2049,7 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
   // faltou nelas). Dividir pelo eleitorado inteiro do país faria a abstenção
   // aparecer como 6% com 30% apurado.
   const apto = totais ? totais.comparecimento + totais.abstencao : 0;
+  ultimoTotais = totais || null;
   ultimoComp = null;
   if (totais && apto > 0) {
     $("cartaoEleitorado").style.display = "";
@@ -2609,7 +2613,7 @@ function blocoDuelo(ctx, y, h, titulo, pPl, destaque, rodapeTxt) {
     tx(ctx, pPl == null ? "—" : n1(100 - pPl) + "%", CW - 98, yn, 132, 900,
       gradTexto(ctx, CW - 500, CW - 98, "#EF4444", "#991B1B"), "right");
     if (pPl != null) barraDupla(ctx, 104, yn + 36, CW - 208, 34, pPl, true);
-    if (rodapeTxt) tx(ctx, rodapeTxt, CW / 2, y + h - 34, 29, 850, "rgba(31,42,68,.75)", "center");
+    if (rodapeTxt) tx(ctx, rodapeTxt, CW / 2, Math.max(y + h - 22, yn + 36 + 34 + 34), 27, 850, "rgba(31,42,68,.75)", "center");
     return;
   }
   rr(ctx, 60, y, CW - 120, h, 36);
@@ -2652,8 +2656,8 @@ function cardMarco(ctx, c) {
     rr(ctx, 100, 520, Math.max(16, (CW - 200) * Math.min(c.pct, 100) / 100), 16, 8);
     ctx.fillStyle = gradTexto(ctx, 100, CW - 100, "#10B981", "#6EE7B7"); ctx.fill();
   }
-  blocoDuelo(ctx, 572, 270, "OFICIAL DO TSE AGORA", c.of, false);
-  blocoDuelo(ctx, 880, 364, "★ PROJEÇÃO DO ALGORITMO", c.pr, true,
+  blocoDuelo(ctx, 566, 280, "APURADO NO TSE AGORA", c.of, false);
+  blocoDuelo(ctx, 880, 350, "★ PROJEÇÃO DO ALGORITMO", c.pr, true,
     c.lo != null ? `margem de 90%: ${n1(c.lo)}–${n1(c.hi)}%` : "");
   // chance de vencer, em destaque
   {
@@ -2662,9 +2666,9 @@ function cardMarco(ctx, c) {
       : (c.ch >= 0.5 ? nomes.pl : nomes.pt).split(" ")[0] + ": chance de vencer em "
         + Math.min(99, Math.max(50, Math.round(100 * Math.max(c.ch, 1 - c.ch)))) + "%";
     if (t) {
-      rr(ctx, 70, 1270, CW - 140, 66, 33); ctx.fillStyle = "rgba(242,181,68,.16)"; ctx.fill();
+      rr(ctx, 70, 1252, CW - 140, 64, 32); ctx.fillStyle = "rgba(242,181,68,.16)"; ctx.fill();
       ctx.lineWidth = 2.5; ctx.strokeStyle = "rgba(242,181,68,.75)"; ctx.stroke();
-      txCabe(ctx, t, CW / 2, 1315, margem ? 28 : 38, 900, OURO, CW - 180, "center");
+      txCabe(ctx, t, CW / 2, 1296, margem ? 28 : 36, 900, OURO, CW - 180, "center");
     }
   }
   // 1º turno no mesmo momento, abstenção e brancos+nulos: uma linha discreta
@@ -2673,16 +2677,16 @@ function cardMarco(ctx, c) {
     if (c.t1 != null) pts.push(`1º turno nas mesmas urnas: ${nomes.pl.split(" ")[0]} ${n1(c.t1)}%`);
     if (c.comp) pts.push(`abstenção ${n1(c.comp.abst)}% (1º t. ${n1(c.comp.abst1)}%)`,
       `brancos+nulos ${n1(c.comp.bn)}% (1º t. ${n1(c.comp.bn1)}%)`);
-    txCabe(ctx, pts.join(" · "), CW / 2, 1366, 22, 800, "rgba(251,248,241,.7)", CW - 140, "center");
+    txCabe(ctx, pts.join(" · "), CW / 2, 1352, 22, 800, "rgba(251,248,241,.75)", CW - 140, "center");
   }
   // regiões
-  let y = 1394;
+  let y = 1400;
   tx(ctx, "POR REGIÃO", 100, y, 28, 900, OURO, "left", 5);
   tx(ctx, "apurado", 570, y, 24, 800, "rgba(251,248,241,.55)", "center", 2);
   tx(ctx, "projeção", CW - 100, y, 24, 800, "rgba(251,248,241,.55)", "right", 2);
   y += 8;
   for (const [nome, apu, p] of c.reg || []) {
-    y += 50;
+    y += 48;
     tx(ctx, nome, 100, y, 34, 900, MARFIM);
     rr(ctx, 440, y - 22, 200, 14, 7); ctx.fillStyle = "rgba(251,248,241,.12)"; ctx.fill();
     rr(ctx, 440, y - 22, Math.max(14, 200 * Math.min(apu, 100) / 100), 14, 7);
@@ -2955,7 +2959,7 @@ function cardRegiaoBR(ctx, d) {
     "rgba(251,248,241,.75)", "center");
   seloSituacao(ctx, CW / 2, 560, R.status, true,
     ["✓ APURAÇÃO FINALIZADA", "EM ANDAMENTO · " + n1(R.apu) + "% APURADO", "AGUARDANDO"]);
-  blocoDuelo(ctx, 610, 270, "APURADO NO TSE AGORA", R.of, false);
+  blocoDuelo(ctx, 606, 280, "APURADO NO TSE AGORA", R.of, false);
   blocoDuelo(ctx, 920, 330, "★ PROJEÇÃO DO ALGORITMO", R.pr, true, "");
   let y = 1310;
   const linha = (t) => { txCabe(ctx, t, CW / 2, y, 27, 850, "rgba(251,248,241,.82)", CW - 140, "center"); y += 44; };
@@ -3050,16 +3054,25 @@ function cardEstado(ctx, d) {
   txCabe(ctx, d.nome, CW / 2, 410, 130, 700, MARFIM, CW - 140, "center", SLAB);
   const e = d.e;
   tx(ctx, e ? n1(e.pctApurado) + "% apurado no estado" : "", CW / 2, 470, 34, 800, "rgba(251,248,241,.72)", "center");
-  blocoDuelo(ctx, 530, 260, "OFICIAL DO TSE AGORA", e && e.obsPl, false, "");
-  blocoDuelo(ctx, 840, 330, "PROJEÇÃO FINAL DO ESTADO", e && e.projPl, true, "");
-  let y = 1230;
+  blocoDuelo(ctx, 510, 280, "APURADO NO TSE AGORA", e && e.obsPl, false, "");
+  blocoDuelo(ctx, 830, 330, "★ PROJEÇÃO DO ALGORITMO", e && e.projPl, true, "");
+  let y = 1206;
+  {
+    const nPl = nomes.pl.split(" ")[0], nPt = nomes.pt.split(" ")[0], pts = [];
+    if (d.t1 != null && e && e.obsPl != null) pts.push(`1º turno mesmas urnas: ${nPl} ${n1(d.t1)}%`);
+    if (d.abst != null) pts.push(`abstenção ${n1(d.abst)}%` + (d.abst1 != null ? ` (1º t. ${n1(d.abst1)}%)` : ""),
+      `br+nulos ${n1(d.bnP)}%` + (d.bn1 != null ? ` (1º t. ${n1(d.bn1)}%)` : ""));
+    if (pts.length) txCabe(ctx, pts.join(" · "), CW / 2, y, 23, 800, "rgba(251,248,241,.75)", CW - 140, "center");
+    y += 44;
+  }
   tx(ctx, "CAPITAL E MAIORES CIDADES", 100, y, 26, 900, OURO, "left", 5);
   y += 10;
   for (const c of d.cid) {
     y += 84;
     rr(ctx, 70, y - 58, CW - 140, 74, 20); ctx.fillStyle = "rgba(251,248,241,.06)"; ctx.fill();
     txCabe(ctx, c.nome + (c.capital ? "  ★" : ""), 100, y - 12, 32, 900, MARFIM, 420);
-    tx(ctx, c.pPl == null ? "aguardando" : n1(c.apu) + "% das seções", 100, y + 10, 21, 750, "rgba(251,248,241,.55)");
+    tx(ctx, c.pPl == null ? "aguardando" : n1(c.apu) + "% das seções · 1º t. " + nomes.pl.split(" ")[0] + " " + n1(c.t1) + "%"
+      + (c.abst != null ? " · abst. " + n1(c.abst) + "%" : ""), 100, y + 10, 21, 750, "rgba(251,248,241,.55)");
     if (c.pPl != null) {
       rr(ctx, 540, y - 30, 170, 12, 6); ctx.fillStyle = "rgba(251,248,241,.12)"; ctx.fill();
       ctx.save(); rr(ctx, 540, y - 30, 170, 12, 6); ctx.clip();
@@ -3248,24 +3261,41 @@ function textoCard(def) {
     return `Meu palpite pro 2º turno: ${nPl} ${n1(def.pl)}% × ${nPt} ${n1(100 - def.pl)}%. `
       + `Duvido você chegar mais perto! Faça o seu: https://${SITE}/ · ${PERFIL}`;
   }
+  const fim = `\n\nAo vivo: https://${SITE}/ · ${PERFIL}\n(Resultado oficial: TSE · a projeção é uma estimativa estatística)`;
+  const extra = (o) => {
+    const l = [];
+    if (o.t1 != null) l.push(`📊 1º turno nas mesmas urnas: ${nPl} ${n1(o.t1)}% × ${nPt} ${n1(100 - o.t1)}%`);
+    if (o.abst != null) l.push(`🚶 Abstenção: ${n1(o.abst)}%` + (o.abst1 != null ? ` (1º turno: ${n1(o.abst1)}%)` : ""));
+    if (o.bn != null || o.bnP != null) { const b = o.bn != null ? o.bn : o.bnP;
+      l.push(`⬜ Brancos + nulos: ${n1(b)}%` + (o.bn1 != null ? ` (1º turno: ${n1(o.bn1)}%)` : "")); }
+    return l.length ? "\n" + l.join("\n") : "";
+  };
   if (def.tipo === "marco" || def.tipo === "virada") {
-    return `${n1(def.pct)}% apurado · Oficial TSE: ${nPl} ${n1(def.of)}% × ${nPt} ${n1(100 - def.of)}%`
-      + ` · Projeção: ${nPl} ${n1(def.pr)}% × ${nPt} ${n1(100 - def.pr)}%. `
-      + `Ao vivo: https://${SITE}/ · ${PERFIL}`;
+    const ch = def.ch == null || (def.lo < 50 && def.hi > 50) ? "" : `\n🎯 Chance de vencer: ${(def.ch >= 0.5 ? nPl : nPt)} ${Math.min(99, Math.round(100 * Math.max(def.ch, 1 - def.ch)))}%`;
+    return `🗳️ Apuração 2º turno · ${n1(def.pct)}% das urnas apuradas`
+      + `\n✅ Apurado no TSE: ${nPl} ${n1(def.of)}% × ${nPt} ${n1(100 - def.of)}%`
+      + `\n★ Projeção do algoritmo: ${nPl} ${n1(def.pr)}% × ${nPt} ${n1(100 - def.pr)}%` + ch
+      + extra(Object.assign({ t1: def.t1 }, def.comp || {})) + fim;
   }
   if (def.tipo === "estado" && def.e) {
-    return `${def.nome}, ${n1(def.e.pctApurado)}% apurado · Oficial TSE: ${nPl} ${n1(def.e.obsPl)}% × `
-      + `${nPt} ${n1(100 - def.e.obsPl)}% · Projeção: ${nPl} ${n1(def.e.projPl)}%. Ao vivo: https://${SITE}/ · ${PERFIL}`;
+    const cid = (def.cid || []).filter((c) => c.pPl != null).map((c) =>
+      `• ${c.nome}: ${nPl} ${n1(c.pPl)}% × ${nPt} ${n1(100 - c.pPl)}% (${n1(c.apu)}% apurado; 1º t. ${nPl} ${n1(c.t1)}%)`).join("\n");
+    return `🗳️ ${def.nome} · ${n1(def.e.pctApurado)}% apurado`
+      + `\n✅ Apurado no TSE: ${nPl} ${n1(def.e.obsPl)}% × ${nPt} ${n1(100 - def.e.obsPl)}%`
+      + `\n★ Projeção do algoritmo: ${nPl} ${n1(def.e.projPl)}% × ${nPt} ${n1(100 - def.e.projPl)}%`
+      + extra(def) + (cid ? "\n\nCidades:\n" + cid : "") + fim;
   }
   if (def.tipo === "regiaoBR" && def.R.of != null) {
     const R = def.R;
-    return `${R.nome}: TSE ${nPl} ${n1(R.of)}% × ${nPt} ${n1(100 - R.of)}% com ${n1(R.apu)}% apurado`
-      + (R.pr != null ? ` · projeção ${nPl} ${n1(R.pr)}% × ${n1(100 - R.pr)}%` : "") + `. Ao vivo: https://${SITE}/ · ${PERFIL}`;
+    return `🗳️ ${R.nome} · ${n1(R.apu)}% apurado`
+      + `\n✅ Apurado no TSE: ${nPl} ${n1(R.of)}% × ${nPt} ${n1(100 - R.of)}%`
+      + (R.pr != null ? `\n★ Projeção do algoritmo: ${nPl} ${n1(R.pr)}% × ${nPt} ${n1(100 - R.pr)}%` : "")
+      + extra(R) + fim;
   }
   if (def.tipo === "regioesBR") {
-    return "O Brasil por região (TSE agora): " + def.lista.filter((R) => R.of != null).map((R) =>
-      `${R.nome} ${R.of >= 50 ? nPl + " " + n1(R.of) : nPt + " " + n1(100 - R.of)}% (${n1(R.apu)}% apurado)`).join(" · ")
-      + `. Ao vivo: https://${SITE}/ · ${PERFIL}`;
+    return "🗳️ O Brasil por região\n" + def.lista.filter((R) => R.of != null).map((R) =>
+      `\n${R.nome} (${n1(R.apu)}% apurado)\n✅ TSE: ${nPl} ${n1(R.of)}% × ${nPt} ${n1(100 - R.of)}%`
+      + (R.pr != null ? `\n★ Projeção: ${nPl} ${n1(R.pr)}% × ${nPt} ${n1(100 - R.pr)}%` : "")).join("\n") + fim;
   }
   if (def.tipo === "regiao") {
     return `${def.nome} (votos do exterior): ${nPl} ${n1(def.pPl)}% × ${nPt} ${n1(100 - def.pPl)}% · `
@@ -4308,6 +4338,7 @@ async function abrirEstado(uf) {
   if (ufAberta === uf) atualizarEstado();
 }
 
+const cidades1T = new Map();
 async function lerCidadesEstado(uf) {
   const eleicao = DEMO !== null ? tse.ELEICAO_1T : TURNO;
   await Promise.all(cidadesDoEstado(uf).map(async ({ i }) => {
@@ -4315,6 +4346,10 @@ async function lerCidadesEstado(uf) {
       const o = await tse.lerMunicipio(eleicao, modelo.uf[i], modelo.cd[i]);
       ufCidades.set(i, Object.assign(o, { t: Date.now() }));
     } catch {}
+    // 1º turno da cidade (abstenção, brancos e nulos), lido uma vez só.
+    if (!cidades1T.has(i)) {
+      try { cidades1T.set(i, await tse.lerMunicipio(tse.ELEICAO_1T, modelo.uf[i], modelo.cd[i])); } catch {}
+    }
   }));
 }
 
@@ -4324,11 +4359,33 @@ function dadosEstado(uf) {
   const cid = cidadesDoEstado(uf).map(({ i, capital }) => {
     const o = ufCidades.get(i);
     const v = o ? o.pl + o.pt : 0;
+    const b = cidades1T.get(i);
+    const t1 = 1 / (1 + Math.exp(-modelo.baseLogit[i])) * 100;
     return { nome: titulo(modelo.nm[i]), capital, ele: modelo.eleitorado[i],
       pPl: v ? 100 * o.pl / v : null, vPl: o ? o.pl : 0, vPt: o ? o.pt : 0,
-      apu: o ? o.pctSecoes : 0 };
+      apu: o ? o.pctSecoes : 0, t1,
+      abst: o && o.a + o.c ? 100 * o.a / (o.a + o.c) : null, bnP: o && o.c ? 100 * o.bn / o.c : null,
+      abst1: b && b.a + b.c ? 100 * b.a / (b.a + b.c) : null, bn1: b && b.c ? 100 * b.bn / b.c : null };
   });
-  return { uf, nome: NOMES_UF[uf] || uf, e, cid, hist: histUF[uf] || [] };
+  // Estado: 1º turno nas mesmas urnas e abstenção/brancos+nulos contra o 1º turno.
+  let t1 = null, abst = null, abst1 = null, bnP = null, bn1 = null;
+  try {
+    let a = 0, bb = 0;
+    const u = uf.toLowerCase();
+    for (let i = 0; i < modelo.n; i++) {
+      if (modelo.uf[i] !== u) continue;
+      const f = modelo.fracao[i]; if (!(f > 0)) continue;
+      const v = f * modelo.validosBase[i], sh = 1 / (1 + Math.exp(-modelo.baseLogit[i]));
+      a += v * sh; bb += v * (1 - sh);
+    }
+    if (a + bb > 0) t1 = 100 * a / (a + bb);
+    const x = ultimoTotais && ultimoTotais.porUf && ultimoTotais.porUf[u], q = T1_UF[u];
+    if (x && x[0] + x[1] > 0) {
+      abst = 100 * x[0] / (x[0] + x[1]); bnP = x[1] ? 100 * x[2] / x[1] : null;
+      if (q) { abst1 = 100 * q[0] / (q[0] + q[1]); bn1 = 100 * q[2] / q[1]; }
+    }
+  } catch {}
+  return { uf, nome: NOMES_UF[uf] || uf, e, cid, hist: histUF[uf] || [], t1, abst, abst1, bnP, bn1 };
 }
 
 function graficoUF(hist) {
@@ -4362,7 +4419,12 @@ function atualizarEstado() {
     + `<div class="sub">${e ? n1(e.pctApurado) + "% apurado" : "aguardando a apuração"}</div>`
     + `<div class="ufNums"><div><div class="t">Oficial TSE agora</div><div class="v">${temDado ? par(e.obsPl) : "—"}</div></div>`
     + `<div><div class="t">Projeção final</div><div class="v">${e && ultimoR && ultimoR.pctApurado > 0.05 ? par(e.projPl) : "—"}</div></div></div>`
-    + `<div class="faixa" style="color:rgba(255,255,255,.6);margin-top:8px">${nPl} × ${nPt}, % dos votos válidos</div></div>`
+    + `<div class="faixa" style="color:rgba(255,255,255,.6);margin-top:8px">${nPl} × ${nPt}, % dos votos válidos</div>`
+    + (d.t1 != null && temDado ? `<div class="uf-1t">1º turno nas mesmas urnas: ${nPl} ${n1(d.t1)}% × ${n1(100 - d.t1)}% ${nPt} · agora `
+      + `<b>${(e.obsPl - d.t1) >= 0 ? nPl : nPt} ▲ +${n1(Math.abs(e.obsPl - d.t1))}</b></div>` : "")
+    + (d.abst != null ? `<div class="uf-1t">Abstenção <b>${n1(d.abst)}%</b>${d.abst1 != null ? ` (1º t. ${n1(d.abst1)}%)` : ""}`
+      + ` · brancos+nulos <b>${n1(d.bnP)}%</b>${d.bn1 != null ? ` (1º t. ${n1(d.bn1)}%)` : ""}</div>` : "")
+    + `</div>`
     + `<div class="ufCorpo"><h4>Ao longo da apuração</h4>${graficoUF(d.hist)}`
     + `<h4 style="margin-top:16px">Capital e maiores cidades</h4><div class="cidades">`
     + d.cid.map((c) => `<div class="cid"><div><div class="n">${esc(c.nome)}${c.capital ? "<small>capital</small>" : ""}</div>`
@@ -4370,7 +4432,11 @@ function atualizarEstado() {
       + `<div class="v">${c.pPl == null ? '<span style="color:var(--fraco)">—</span>'
         : `<span class="a">${n1(c.pPl)}%</span> × <span class="b">${n1(100 - c.pPl)}%</span>`}</div>`
       + (c.pPl == null ? "" : `<div class="mini"><i style="width:${c.pPl}%;background:var(--pl)"></i>`
-        + `<i style="width:${100 - c.pPl}%;background:var(--pt)"></i></div>`) + `</div>`).join("")
+        + `<i style="width:${100 - c.pPl}%;background:var(--pt)"></i></div>`)
+      + (c.pPl == null ? "" : `<div class="cid-1t">1º turno: ${nPl} ${n1(c.t1)}% · agora ${(c.pPl - c.t1) >= 0 ? nPl : nPt} ▲ +${n1(Math.abs(c.pPl - c.t1))}`
+        + (c.abst != null ? ` · abstenção ${n1(c.abst)}%${c.abst1 != null ? ` (1º t. ${n1(c.abst1)}%)` : ""}` : "")
+        + (c.bnP != null ? ` · br+nulos ${n1(c.bnP)}%${c.bn1 != null ? ` (1º t. ${n1(c.bn1)}%)` : ""}` : "") + `</div>`)
+      + `</div>`).join("")
     + `</div><div class="faixa" style="margin-top:8px">Cidades: resultado oficial do TSE, município a município`
     + (DEMO !== null ? " (ensaio: 1º turno)" : "") + `.</div>`
     + `<div class="ufAcoes"><button class="bt-ouro" id="btUFCard"${temDado ? "" : " disabled"}>Compartilhar ${esc(d.nome)} no Instagram / WhatsApp</button></div></div>`;
@@ -5588,7 +5654,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=b202f78419").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=e73d1d163c").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});

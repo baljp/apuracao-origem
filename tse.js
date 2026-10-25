@@ -190,8 +190,9 @@ export async function lerMunicipio(eleicao, uf, cd) {
           if (c.n === NUM_PL) pl += num(c.vap);
           else if (c.n === NUM_PT) pt += num(c.vap);
         }
-  const s = doc.s || {};
-  return { pl, pt, pctSecoes: num(s.pst), hora: doc.ht || "" };
+  const s = doc.s || {}, e = doc.e || {}, v = doc.v || {};
+  return { pl, pt, pctSecoes: num(s.pst), hora: doc.ht || "",
+    a: num(e.a), c: num(e.c), bn: num(v.vb) + num(v.tvn) };
 }
 
 /* Andamento de uma UF inteira, cidade a cidade — usado para o exterior, em
