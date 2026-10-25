@@ -866,6 +866,11 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 .reg-apu .progresso{flex:1;height:7px;border-radius:999px;background:rgba(127,127,127,.15);overflow:hidden;min-width:40px}
 .reg-apu .progresso i{display:block;height:100%;background:linear-gradient(90deg,#10B981,#6EE7B7)}
 .reg-apu em{font-style:normal;white-space:nowrap}
+.reg-proj{grid-column:1 / -1;font-size:13px;font-weight:850;padding:6px 10px;border-radius:10px;
+  background:rgba(242,181,68,.14);border:1px solid rgba(242,181,68,.45)}
+.reg-proj b.a{color:var(--pl)} .reg-proj b.b{color:var(--pt)}
+.reg-info{grid-column:1 / -1;font-size:12px;font-weight:750;color:var(--fraco);line-height:1.4}
+.reg-info b{color:var(--texto)} .reg-info b.a{color:var(--pl)} .reg-info b.b{color:var(--pt)}
 .reg-intro{font-size:13px;color:var(--fraco);font-weight:650;line-height:1.45;margin:-4px 0 12px}
 .regiao .globo{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:26px;
   background:linear-gradient(135deg,rgba(242,181,68,.22),rgba(242,181,68,.06));border:1px solid rgba(242,181,68,.4)}
@@ -1213,8 +1218,9 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
 
   <div class="cartao" id="cartaoRegioes" style="display:none">
     <div class="cab"><div><span class="rotulo">Brasil em cinco partes</span><h2>Por região</h2></div>
-      <span class="pilula">projeção · votos válidos</span></div>
-    <div class="regioes" id="regioes"></div>
+      <span class="pilula">TSE agora · projeção</span></div>
+    <div class="ext-lista" id="regioes"></div>
+    <button class="bt-ouro" id="btRegioesBR" style="margin-top:14px;width:100%">Compartilhar todas as regiões no Instagram / WhatsApp</button>
   </div>
 
   <div class="cartao painel" id="cartaoExterior">
@@ -3181,7 +3187,7 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
   renderEstados(r);
   if (DEMO === null) registrarUFs(r);
   if (ufAberta) atualizarEstado();
-  renderRegioes(r);
+  renderRegioes(r, observado, totais, horaTSE);
   renderSaldo(r);
   renderFalta(r, votosPl, votosPt);
 
@@ -4039,6 +4045,76 @@ function cardRegioes(ctx, d) {
     : "Parcial: boletins de urna publicados pelo TSE · não é a totalização");
 }
 
+function cardRegiaoBR(ctx, d) {
+  const R = d.R, nPl = nomes.pl.split(" ")[0], nPt = nomes.pt.split(" ")[0];
+  fundo(ctx, null, 340);
+  marca(ctx, "BRASIL · REGIÃO");
+  tx(ctx, R.globo, CW / 2, 320, 110, 400, "#fff", "center");
+  txCabe(ctx, R.nome, CW / 2, 440, 104, 700, MARFIM, CW - 140, "center", SLAB);
+  tx(ctx, n1(R.apu) + "% das urnas apuradas na região" + (R.hora ? " · " + R.hora : ""), CW / 2, 500, 30, 800,
+    "rgba(251,248,241,.75)", "center");
+  seloSituacao(ctx, CW / 2, 560, R.status, true,
+    ["✓ APURAÇÃO FINALIZADA", "EM ANDAMENTO · " + n1(R.apu) + "% APURADO", "AGUARDANDO"]);
+  blocoDuelo(ctx, 610, 270, "APURADO NO TSE AGORA", R.of, false);
+  blocoDuelo(ctx, 920, 330, "★ PROJEÇÃO DO ALGORITMO", R.pr, true, "");
+  let y = 1310;
+  const linha = (t) => { txCabe(ctx, t, CW / 2, y, 27, 850, "rgba(251,248,241,.82)", CW - 140, "center"); y += 44; };
+  if (R.t1 != null && R.of != null) {
+    const d1 = R.of - R.t1;
+    linha(`1º turno nas mesmas urnas: ${nPl} ${n1(R.t1)}% × ${n1(100 - R.t1)}% ${nPt} · agora ${d1 >= 0 ? nPl : nPt} ▲ +${n1(Math.abs(d1))}`);
+  }
+  if (R.abst != null) linha(`Abstenção ${n1(R.abst)}%` + (R.abst1 != null ? ` (1º t. ${n1(R.abst1)}%)` : "")
+    + ` · brancos+nulos ${n1(R.bnP)}%` + (R.bn1 != null ? ` (1º t. ${n1(R.bn1)}%)` : ""));
+  y += 6;
+  const ests = R.estados.slice().sort((a, b) => (b.vPl + b.vPt) - (a.vPl + a.vPt));
+  const porLinha = 3, w = (CW - 140) / porLinha;
+  ests.forEach((e, i) => {
+    const cx = 70 + (i % porLinha) * w, cy = y + Math.floor(i / porLinha) * 62;
+    if (cy > CH - 300) return;
+    rr(ctx, cx + 6, cy - 34, w - 12, 52, 14); ctx.fillStyle = "rgba(251,248,241,.07)"; ctx.fill();
+    const p = e.obsPl;
+    tx(ctx, e.uf, cx + 24, cy, 26, 900, MARFIM);
+    tx(ctx, p == null ? "—" : (p >= 50 ? nPl : nPt) + " " + n1(p >= 50 ? p : 100 - p) + "%",
+      cx + w - 24, cy, 22, 900, p == null ? "rgba(251,248,241,.5)" : p >= 50 ? "#A9CAFF" : "#FFADA6", "right");
+  });
+  rodape(ctx, "Siga " + PERFIL, "Oficial: TSE · por estado, o número apurado no TSE · a projeção é estatística");
+}
+
+function cardRegioesBR(ctx, d) {
+  fundo(ctx, null, 300);
+  marca(ctx, "BRASIL");
+  tx(ctx, "O Brasil", CW / 2, 290, 96, 700, MARFIM, "center", 0, SLAB);
+  tx(ctx, "por região", CW / 2, 380, 96, 700, gradTexto(ctx, 240, 840, "#FFF3D1", OURO), "center", 0, SLAB);
+  const nPl = nomes.pl.split(" ")[0], nPt = nomes.pt.split(" ")[0];
+  tx(ctx, "apurado no TSE · ★ projeção do algoritmo", CW / 2, 440, 28, 800, OURO, "center");
+  let y = 490;
+  const passo = Math.floor((CH - 300 - 500) / d.lista.length);
+  for (const R of d.lista) {
+    rr(ctx, 64, y, CW - 128, passo - 14, 22); ctx.fillStyle = "rgba(251,248,241,.07)"; ctx.fill();
+    tx(ctx, R.globo, 94, y + 50, 36, 400, "#fff");
+    txCabe(ctx, R.nome, 150, y + 48, 34, 900, MARFIM, 330);
+    seloSituacao(ctx, 640, y + 46, R.status, false, ["✓ FINALIZADO", "EM ANDAMENTO · " + n1(R.apu) + "%", "AGUARDANDO"]);
+    const p = R.of;
+    if (p != null) {
+      const l = p >= 50;
+      tx(ctx, n1(l ? p : 100 - p) + "%", CW - 92, y + 50, 38, 900, l ? "#A9CAFF" : "#FFADA6", "right");
+      const bx = 94, bw = CW - 188, by = y + 70;
+      rr(ctx, bx, by, bw, 12, 6); ctx.fillStyle = "rgba(251,248,241,.12)"; ctx.fill();
+      ctx.save(); rr(ctx, bx, by, bw, 12, 6); ctx.clip();
+      ctx.fillStyle = AZUL; ctx.fillRect(bx, by, bw * p / 100 - 2, 12);
+      ctx.fillStyle = VERM; ctx.fillRect(bx + bw * p / 100 + 2, by, bw, 12); ctx.restore();
+      tx(ctx, `TSE: ${nPl} ${n1(p)}% × ${n1(100 - p)}% ${nPt}`, bx, by + 44, 24, 850, "rgba(251,248,241,.85)");
+      if (R.pr != null) tx(ctx, `★ ${nPl} ${n1(R.pr)}% × ${n1(100 - R.pr)}%`, bx + bw, by + 44, 24, 900, OURO, "right");
+      const extra = [];
+      if (R.t1 != null) extra.push(`1º t. mesmas urnas: ${nPl} ${n1(R.t1)}%`);
+      if (R.abst != null) extra.push(`abst. ${n1(R.abst)}%`, `br+nulos ${n1(R.bnP)}%`);
+      if (extra.length && passo > 150) tx(ctx, extra.join(" · "), bx, by + 80, 21, 750, "rgba(251,248,241,.6)");
+    } else tx(ctx, "aguardando", CW - 92, y + 50, 26, 800, "rgba(251,248,241,.5)", "right");
+    y += passo;
+  }
+  rodape(ctx, "Siga " + PERFIL);
+}
+
 function cardPais(ctx, d) {
   fundo(ctx, null, 340);
   marca(ctx, "EXTERIOR");
@@ -4168,6 +4244,8 @@ async function desenharCard(def) {
   else if (def.tipo === "pais") cardPais(ctx, def);
   else if (def.tipo === "regiao") cardRegiao(ctx, def);
   else if (def.tipo === "regioes") cardRegioes(ctx, def);
+  else if (def.tipo === "regiaoBR") cardRegiaoBR(ctx, def);
+  else if (def.tipo === "regioesBR") cardRegioesBR(ctx, def);
   else if (def.tipo === "estado") cardEstado(ctx, def);
   return cv;
 }
@@ -4278,6 +4356,16 @@ function textoCard(def) {
   if (def.tipo === "estado" && def.e) {
     return `${def.nome}, ${n1(def.e.pctApurado)}% apurado · Oficial TSE: ${nPl} ${n1(def.e.obsPl)}% × `
       + `${nPt} ${n1(100 - def.e.obsPl)}% · Projeção: ${nPl} ${n1(def.e.projPl)}%. Ao vivo: https://${SITE}/ · ${PERFIL}`;
+  }
+  if (def.tipo === "regiaoBR" && def.R.of != null) {
+    const R = def.R;
+    return `${R.nome}: TSE ${nPl} ${n1(R.of)}% × ${nPt} ${n1(100 - R.of)}% com ${n1(R.apu)}% apurado`
+      + (R.pr != null ? ` · projeção ${nPl} ${n1(R.pr)}% × ${n1(100 - R.pr)}%` : "") + `. Ao vivo: https://${SITE}/ · ${PERFIL}`;
+  }
+  if (def.tipo === "regioesBR") {
+    return "O Brasil por região (TSE agora): " + def.lista.filter((R) => R.of != null).map((R) =>
+      `${R.nome} ${R.of >= 50 ? nPl + " " + n1(R.of) : nPt + " " + n1(100 - R.of)}% (${n1(R.apu)}% apurado)`).join(" · ")
+      + `. Ao vivo: https://${SITE}/ · ${PERFIL}`;
   }
   if (def.tipo === "regiao") {
     return `${def.nome} (votos do exterior): ${nPl} ${n1(def.pPl)}% × ${nPt} ${n1(100 - def.pPl)}% · `
@@ -5536,33 +5624,76 @@ const NOMES_REGIAO = { "norte": "Norte", "nordeste": "Nordeste",
 
 /* Por região: soma os votos projetados de cada estado. A barra cheia é a
  * projeção; o fio verde, quanto da região já foi apurado. */
-function renderRegioes(r) {
-  const acc = new Map();
-  for (const e of r.estados) {
-    const k = e.regiao;
-    const a = acc.get(k) || { pl: 0, pt: 0, apu: 0, peso: 0 };
-    a.pl += e.vPl || 0; a.pt += e.vPt || 0;
-    const peso = (e.vPl || 0) + (e.vPt || 0);
-    a.apu += e.pctApurado * peso; a.peso += peso;
-    acc.set(k, a);
-  }
-  const ordem = ["nordeste", "sudeste", "sul", "norte", "centro-oeste", "exterior"];
-  const linhas = ordem.filter((k) => acc.has(k) && acc.get(k).pl + acc.get(k).pt > 0)
-    .map((k) => {
-      const a = acc.get(k), v = a.pl + a.pt, p = 100 * a.pl / v;
-      const apu = a.peso ? a.apu / a.peso : 0;
-      const lider = p > 50 ? nomes.pl.split(" ")[0] : nomes.pt.split(" ")[0];
-      return `<div class="reg"><div class="n">${NOMES_REGIAO[k]}`
-        + `<small>${n1(apu)}% apurado</small></div>`
-        + `<div><div class="mini"><i style="width:${p}%;background:var(--pl)"></i>`
-        + `<i style="width:${100 - p}%;background:var(--pt)"></i></div>`
-        + `<div class="uf-apur"><i style="width:${Math.min(apu, 100)}%"></i></div></div>`
-        + `<div class="v" style="color:${p > 50 ? "var(--pl)" : "var(--pt)"}">`
-        + `${n1(Math.max(p, 100 - p))}%<small>${esc(lider)}</small></div></div>`;
-    });
+const REG_UF = { norte: "ac am ap pa ro rr to", nordeste: "al ba ce ma pb pe pi rn se",
+  "centro-oeste": "df go ms mt", sudeste: "es mg rj sp", sul: "pr rs sc" };
+const GLOBO_REG = { norte: "🌳", nordeste: "🌵", "centro-oeste": "🌾", sudeste: "🏙️", sul: "🧉" };
+let regBR = [];
+function renderRegioes(r, observado, totais, horaTSE) {
+  const ordem = ["nordeste", "sudeste", "sul", "norte", "centro-oeste"];
+  const mil = (v) => Math.round(v).toLocaleString("pt-BR");
+  const porUf = (totais && totais.porUf) || {};
+  regBR = ordem.map((k) => {
+    const ufs = REG_UF[k].split(" ");
+    const R = { k, nome: NOMES_REGIAO[k], globo: GLOBO_REG[k], ofPl: 0, ofPt: 0, prPl: 0, prPt: 0,
+      ele: 0, eleApu: 0, t1a: 0, t1b: 0, a: 0, c: 0, bn: 0, eA: 0, eBn: 0, estados: [], hora: horaTSE || "" };
+    for (const uf of ufs) {
+      const o = observado && observado[uf]; if (o) { R.ofPl += o.pl; R.ofPt += o.pt; }
+      const x = porUf[uf], b = T1_UF[uf];
+      if (x) { R.a += x[0]; R.c += x[1]; R.bn += x[2];
+        if (b) { R.eA += (x[0] + x[1]) * b[0] / (b[0] + b[1]); R.eBn += x[1] * b[2] / b[1]; } }
+      const e = r.estados.find((q) => q.uf === uf.toUpperCase());
+      if (e) { R.prPl += e.vPl || 0; R.prPt += e.vPt || 0; R.estados.push(e); }
+    }
+    try {
+      for (let i = 0; i < modelo.n; i++) {
+        if (!ufs.includes(modelo.uf[i])) continue;
+        const f = modelo.fracao[i];
+        R.ele += modelo.eleitorado[i]; R.eleApu += f * modelo.eleitorado[i];
+        if (f > 0) {
+          const v = f * modelo.validosBase[i], sh = 1 / (1 + Math.exp(-modelo.baseLogit[i]));
+          R.t1a += v * sh; R.t1b += v * (1 - sh);
+        }
+      }
+    } catch {}
+    R.apu = R.ele ? 100 * R.eleApu / R.ele : 0;
+    R.of = R.ofPl + R.ofPt ? 100 * R.ofPl / (R.ofPl + R.ofPt) : null;
+    R.pr = R.prPl + R.prPt ? 100 * R.prPl / (R.prPl + R.prPt) : null;
+    R.t1 = R.t1a + R.t1b ? 100 * R.t1a / (R.t1a + R.t1b) : null;
+    const apto = R.a + R.c;
+    R.abst = apto ? 100 * R.a / apto : null; R.abst1 = apto && R.eA ? 100 * R.eA / apto : null;
+    R.bnP = R.c ? 100 * R.bn / R.c : null; R.bn1 = R.c && R.eBn ? 100 * R.eBn / R.c : null;
+    R.status = R.apu >= 99.95 ? "fin" : R.apu > 0 ? "par" : "esp";
+    return R;
+  });
+  const nPl = nomes.pl.split(" ")[0], nPt = nomes.pt.split(" ")[0];
+  const seta = (d) => (d >= 0 ? "▲ +" : "▼ −") + n1(Math.abs(d));
+  const linhas = regBR.filter((R) => R.of != null || R.pr != null).map((R) => {
+    const p = R.of, lid = p == null ? null : p >= 50 ? "pl" : "pt";
+    const d1 = R.t1 != null && p != null ? p - R.t1 : null;
+    return `<div class="pais regiao">`
+      + `<div class="globo" aria-hidden="true">${R.globo}</div>`
+      + `<div><div class="p">${esc(R.nome)}<span class="st-pais ${R.status}">${ROTULO_ST[R.status]}</span></div>`
+      + `<div class="reg-apu"><b>${n1(R.apu)}% apurado</b><span class="progresso"><i style="width:${R.apu}%"></i></span>`
+      + `<em>${R.estados.length} estados</em></div></div>`
+      + (p == null ? `<div class="r" style="color:var(--fraco);font-size:13px">aguardando</div>`
+        : `<div class="r" style="color:var(--${lid})">${n1(lid === "pl" ? p : 100 - p)}%<small>${lid === "pl" ? nPl : nPt} · TSE</small></div>`
+          + `<div class="barra2"><i style="width:${p}%;background:var(--pl)"></i><i style="width:${100 - p}%;background:var(--pt)"></i></div>`
+          + `<div class="nums"><span class="a">${nPl} ${n1(p)}% · ${mil(R.ofPl)}</span><span class="b">${mil(R.ofPt)} · ${n1(100 - p)}% ${nPt}</span></div>`)
+      + (R.pr != null ? `<div class="reg-proj">★ Projeção: <b class="a">${nPl} ${n1(R.pr)}%</b> × <b class="b">${n1(100 - R.pr)}% ${nPt}</b></div>` : "")
+      + (d1 != null ? `<div class="reg-info">1º turno nas mesmas urnas: ${nPl} ${n1(R.t1)}% · agora <b class="${d1 >= 0 ? "a" : "b"}">${d1 >= 0 ? nPl : nPt} ${seta(Math.abs(d1))}</b></div>` : "")
+      + (R.abst != null ? `<div class="reg-info">Abstenção <b>${n1(R.abst)}%</b>${R.abst1 != null ? ` (1º t. ${n1(R.abst1)}%)` : ""}`
+        + ` · brancos+nulos <b>${n1(R.bnP)}%</b>${R.bn1 != null ? ` (1º t. ${n1(R.bn1)}%)` : ""}</div>` : "")
+      + (p == null ? "" : `<button class="pais-sh regbr-sh" data-reg="${R.k}">↗ Compartilhar ${esc(R.nome)}</button>`)
+      + `</div>`;
+  });
   $("cartaoRegioes").style.display = linhas.length ? "block" : "none";
   $("regioes").innerHTML = linhas.join("");
 }
+$("regioes").addEventListener("click", (ev) => {
+  const b = ev.target.closest(".regbr-sh"); if (!b) return;
+  const R = regBR.find((x) => x.k === b.dataset.reg); if (R) abrirCard({ tipo: "regiaoBR", R });
+});
+$("btRegioesBR").addEventListener("click", () => { if (regBR.length) abrirCard({ tipo: "regioesBR", lista: regBR }); });
 
 /* Saldo de votos por estado: quantos votos de diferença cada estado deve dar
  * no fim. Em eleição apertada, é aqui que se vê de onde vem a vitória. */
