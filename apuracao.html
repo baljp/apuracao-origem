@@ -2190,8 +2190,27 @@ async function lerAndamento(eleicao) {
   return { fracoes, falhas };
 }
 
+/* O arquivo nacional (br) é o que o aplicativo do TSE mostra. Os arquivos de
+ * cada estado podem ficar alguns minutos atrás dele na rede do TSE; por isso
+ * o placar "apurado no TSE" usa sempre o nacional, e os estados alimentam o
+ * modelo. */
+async function lerBrasil(eleicao) {
+  const doc = await buscar(urlResultado(eleicao, "br"));
+  let pl = 0, pt = 0;
+  for (const cargo of doc.carg || [])
+    for (const agr of cargo.agr || [])
+      for (const par of agr.par || [])
+        for (const c of par.cand || []) {
+          if (c.n === NUM_PL) pl += num(c.vap);
+          else if (c.n === NUM_PT) pt += num(c.vap);
+        }
+  const s = doc.s || {}, e = doc.e || {}, v = doc.v || {};
+  return { pl, pt, st: num(s.st), ts: num(s.ts), pst: num(s.pst), hora: doc.ht || doc.hg || "",
+    brancos: num(v.vb), nulos: num(v.tvn), validos: num(v.vv), abstencao: num(e.a), comparecimento: num(e.c) };
+}
 async function lerTudo(eleicao) {
-  const [res, and] = await Promise.all([lerResultados(eleicao), lerAndamento(eleicao)]);
+  const [res, and, brasil] = await Promise.all([lerResultados(eleicao), lerAndamento(eleicao),
+    lerBrasil(eleicao).catch(() => null)]);
 
   // Os votos de uma UF e o andamento dela vêm de arquivos diferentes, e um
   // pode chegar sem o outro. Esse descasamento é grave, e silencioso:
@@ -2239,6 +2258,7 @@ async function lerTudo(eleicao) {
     horaTSE: res.horaTSE,
     dispersao: res.dispersao,
     falhas: [...new Set([...res.falhas, ...and.falhas, ...incompletas])],
+    brasil,
   };
 }
 
@@ -2713,7 +2733,14 @@ const DEMO = (() => {
  */
 /* 1º turno por UF: [abstenção, comparecimento, brancos+nulos] (TSE, eleição 6257). */
 const T1_UF = {"ac":[125412,488330,19264],"al":[503698,1938428,119572],"am":[564062,2234549,63786],"ap":[100426,476562,11704],"ba":[2259151,9053601,493310],"ce":[1086074,5910471,292657],"df":[426924,1831396,58588],"es":[639368,2352282,101204],"go":[1109003,3971587,143764],"ma":[1022772,4160343,149904],"mg":[3735098,12637274,661039],"ms":[483210,1541220,50942],"mt":[585668,2052133,58845],"pa":[1195893,5066504,203332],"pb":[564543,2683988,170241],"pe":[1312388,5911062,310045],"pi":[463875,2240883,94489],"pr":[1772200,6841457,256214],"rj":[2997846,9859802,490102],"rn":[488812,2171013,99115],"ro":[274813,991080,23021],"rr":[68749,332772,7227],"rs":[1819642,6702903,279857],"sc":[1086492,4648159,147262],"se":[301053,1439082,74886],"sp":[7690900,26431992,1549044],"to":[216827,965196,34749],"zz":[574345,341766,10884]};
-let ultimoComp = null, ultimoT1 = null, ultimoTotais = null;
+let ultimoComp = null, ultimoT1 = null, ultimoTotais = null, ultimoBrasil = null;
+const T1_BR = Object.values(T1_UF).reduce((a, x) => [a[0] + x[0], a[1] + x[1], a[2] + x[2]], [0, 0, 0]);
+/* Total nacional do TSE (o que o aplicativo mostra), quando está à frente da
+ * soma dos estados. */
+const brasilAFrente = (r) => {
+  const b = ultimoBrasil;
+  return b && DEMO === null && b.pl + b.pt > (r.votosApurados || 0) + 0.5 ? b : null;
+};
 const ABERTURA = Date.UTC(2026, 9, 25, 19, 55);        // 16h55 de Brasília
 const FECHAMENTO_URNAS = Date.UTC(2026, 9, 25, 20, 0); // 17h00 de Brasília
 
@@ -2919,7 +2946,8 @@ async function tick() {
   if (TURNO === tse.ELEICAO_2T && Date.now() < ABERTURA) return tickEspera();
   try {
     const { observado, fracoes, nomes: nms, falhas, totais, horaTSE,
-            dispersao } = await tse.lerTudo(TURNO);
+            dispersao, brasil } = await tse.lerTudo(TURNO);
+    ultimoBrasil = brasil || null;
     if (nms && nms.pl) {
       nomes = { pl: titulo(nms.pl), pt: titulo(nms.pt) };
       $("nomePL").textContent = nomes.pl;
@@ -2979,7 +3007,7 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
   const hora = horaTSE || new Date().toLocaleTimeString("pt-BR");
   // Enquanto não há voto totalizado, dizer "dados do TSE de 16:56" sugere
   // que existe número ali. Existe conexão, que é outra coisa.
-  let st = r.votosApurados > 0
+  let st = (r.votosApurados > 0 || brasilAFrente(r))
     ? '<span class="pisca"></span>dados do TSE de ' + esc(hora)
       + " · tempo real, atualiza sozinho"
     : '<span class="pisca"></span>conectado ao TSE · nenhum voto totalizado '
@@ -3012,7 +3040,7 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
   for (const uf of Object.values(observado || {})) {
     votosPl += uf.pl; votosPt += uf.pt;
   }
-  const temVoto = votosPl + votosPt > 0;
+  const temVoto = votosPl + votosPt > 0 || !!brasilAFrente(r);
 
   if (!temVoto && falhas && falhas.length >= 20) {
     $("status").innerHTML = '<span class="erro">⚠ não consegui ler o TSE ('
@@ -3031,15 +3059,17 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
 
   // Mostra assim que o TSE totaliza o primeiro voto (o aviso de "abaixo de 1%
   // a projeção é instável" já vai junto no placar).
-  const comecou = temVoto && r.votosApurados > 0;
+  const BR = brasilAFrente(r);
+  const comecou = temVoto && (r.votosApurados > 0 || !!BR);
+  const pctApu = BR ? BR.pst : r.pctApurado;
   if (DEMO === null) atualizarFaixa(r, comecou);
   $("vazio").style.display = comecou ? "none" : "block";
   $("placar").style.display = comecou ? "block" : "none";
-  $("apurado").textContent = n1(r.pctApurado) + "%";
-  $("barraApurado").style.width = Math.min(r.pctApurado, 100) + "%";
+  $("apurado").textContent = n1(pctApu) + "%";
+  $("barraApurado").style.width = Math.min(pctApu, 100) + "%";
   $("barraApurado").parentElement.nextElementSibling.textContent =
-    r.pctApurado >= 99.95 ? "das urnas do país"
-      : "faltam " + n1(100 - r.pctApurado) + "%";
+    pctApu >= 99.95 ? "das urnas do país"
+      : "faltam " + n1(100 - pctApu) + "%";
   if (!comecou) { desenhaMapa(null).catch(() => {}); return; }
 
   contar($("pctPL"), r.projecaoPl);
@@ -3079,7 +3109,22 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
     $("tseAg1t").innerHTML = `1º turno nessas mesmas urnas: ${curtoPl} ${n1(ultimoT1)}% × ${n1(100 - ultimoT1)}% ${curtoPt}`
       + ` · <b class="${d >= 0 ? "a" : "b"}">${d >= 0 ? curtoPl + " ▲ +" + n1(d) : curtoPt + " ▲ +" + n1(-d)}</b>`;
   }
-  if (r.brutoPl != null) {
+  if (BR) {
+    // O nacional do TSE está à frente do detalhe por estado: o placar mostra
+    // o nacional (igual ao aplicativo do TSE); a projeção usa os estados que
+    // o TSE já detalhou.
+    const bp = 100 * BR.pl / (BR.pl + BR.pt);
+    $("tseAgPL").textContent = n1(bp) + "%";
+    $("tseAgPT").textContent = n1(100 - bp) + "%";
+    $("tseAgNPL").textContent = curtoPl; $("tseAgNPT").textContent = curtoPt;
+    $("tseAgApu").textContent = n1(BR.pst) + "% das seções";
+    $("tseAgBPL").style.cssText = "width:" + bp + "%;background:var(--pl-vivo)";
+    $("tseAgBPT").style.cssText = "width:" + (100 - bp) + "%;background:var(--pt-vivo)";
+    const fr = BR.pl + BR.pt ? 100 * (r.votosApurados || 0) / (BR.pl + BR.pt) : 0;
+    const ml = (v) => Math.round(v).toLocaleString("pt-BR");
+    $("tseAg1t").innerHTML = `${ml(BR.pl)} × ${ml(BR.pt)} votos · igual ao aplicativo do TSE. `
+      + `O TSE ainda não publicou o detalhe de todos os estados: a projeção usa os ${n1(fr)}% dos votos já detalhados.`;
+  } else if (r.brutoPl != null) {
     $("tseAgPL").textContent = n1(r.brutoPl) + "%";
     $("tseAgPT").textContent = n1(100 - r.brutoPl) + "%";
     $("tseAgNPL").textContent = curtoPl; $("tseAgNPT").textContent = curtoPt;
@@ -3151,8 +3196,14 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
   // O denominador é o eleitorado das seções JÁ apuradas (quem votou + quem
   // faltou nelas). Dividir pelo eleitorado inteiro do país faria a abstenção
   // aparecer como 6% com 30% apurado.
-  const apto = totais ? totais.comparecimento + totais.abstencao : 0;
   ultimoTotais = totais || null;
+  // Comparecimento, abstenção, brancos e nulos: do nacional quando ele está à
+  // frente da soma dos estados (a comparação com o 1º turno usa então a taxa
+  // nacional de outubro).
+  const BRt = brasilAFrente(r);
+  if (BRt) totais = Object.assign({}, totais, { comparecimento: BRt.comparecimento, abstencao: BRt.abstencao,
+    brancos: BRt.brancos, nulos: BRt.nulos, validos: BRt.validos, porUf: { _br: [BRt.abstencao, BRt.comparecimento, BRt.brancos + BRt.nulos] } });
+  const apto = totais ? totais.comparecimento + totais.abstencao : 0;
   ultimoComp = null;
   if (totais && apto > 0) {
     $("cartaoEleitorado").style.display = "";
@@ -3164,7 +3215,7 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
     // pelo quanto de cada estado já foi apurado agora.
     let eA = 0, eBn = 0;
     for (const [uf, x] of Object.entries(totais.porUf || {})) {
-      const b = T1_UF[uf]; if (!b) continue;
+      const b = uf === "_br" ? T1_BR : T1_UF[uf]; if (!b) continue;
       eA += (x[0] + x[1]) * b[0] / (b[0] + b[1]);
       eBn += x[1] * b[2] / b[1];
     }

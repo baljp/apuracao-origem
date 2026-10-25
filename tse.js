@@ -231,8 +231,27 @@ export async function lerAndamento(eleicao) {
   return { fracoes, falhas };
 }
 
+/* O arquivo nacional (br) é o que o aplicativo do TSE mostra. Os arquivos de
+ * cada estado podem ficar alguns minutos atrás dele na rede do TSE; por isso
+ * o placar "apurado no TSE" usa sempre o nacional, e os estados alimentam o
+ * modelo. */
+export async function lerBrasil(eleicao) {
+  const doc = await buscar(urlResultado(eleicao, "br"));
+  let pl = 0, pt = 0;
+  for (const cargo of doc.carg || [])
+    for (const agr of cargo.agr || [])
+      for (const par of agr.par || [])
+        for (const c of par.cand || []) {
+          if (c.n === NUM_PL) pl += num(c.vap);
+          else if (c.n === NUM_PT) pt += num(c.vap);
+        }
+  const s = doc.s || {}, e = doc.e || {}, v = doc.v || {};
+  return { pl, pt, st: num(s.st), ts: num(s.ts), pst: num(s.pst), hora: doc.ht || doc.hg || "",
+    brancos: num(v.vb), nulos: num(v.tvn), validos: num(v.vv), abstencao: num(e.a), comparecimento: num(e.c) };
+}
 export async function lerTudo(eleicao) {
-  const [res, and] = await Promise.all([lerResultados(eleicao), lerAndamento(eleicao)]);
+  const [res, and, brasil] = await Promise.all([lerResultados(eleicao), lerAndamento(eleicao),
+    lerBrasil(eleicao).catch(() => null)]);
 
   // Os votos de uma UF e o andamento dela vêm de arquivos diferentes, e um
   // pode chegar sem o outro. Esse descasamento é grave, e silencioso:
@@ -280,5 +299,6 @@ export async function lerTudo(eleicao) {
     horaTSE: res.horaTSE,
     dispersao: res.dispersao,
     falhas: [...new Set([...res.falhas, ...and.falhas, ...incompletas])],
+    brasil,
   };
 }
