@@ -3879,9 +3879,14 @@ function cardMarco(ctx, c) {
   } else {
     // o percentual apurado, gigante, em ouro sobre o sol
     const t = (c.k >= 100 ? "100" : String(c.k)) + "%";
-    const tam = c.k >= 100 ? 250 : 300;
+    // O número com duas casas ("30,25%") é largo: o tamanho se ajusta para
+    // número + legenda caberem inteiros, com margem dos dois lados.
+    const leg = Math.max(largura(ctx, c.k >= 100 ? "ENCERRADA" : "APURADAS", 44, 900),
+      largura(ctx, c.k >= 100 ? "APURAÇÃO" : "DAS URNAS", 44, 900)) + 50;
+    let tam = c.k >= 100 ? 250 : 300;
+    while (tam > 120 && largura(ctx, t, tam, 900) + 40 + leg > CW - 170) tam -= 6;
     const w = largura(ctx, t, tam, 900);
-    const x0 = (CW - (w + 40 + 330)) / 2;
+    const x0 = (CW - (w + 40 + leg)) / 2;
     ctx.save();
     ctx.shadowColor = "rgba(242,181,68,.45)"; ctx.shadowBlur = 60;
     tx(ctx, t, x0, 480, tam, 900, gradTexto(ctx, x0, x0 + w, "#FFF3D1", OURO));
@@ -3917,13 +3922,13 @@ function cardMarco(ctx, c) {
     txCabe(ctx, pts.join(" · "), CW / 2, 1352, 22, 800, "rgba(251,248,241,.75)", CW - 140, "center");
   }
   // regiões
-  let y = 1400;
+  let y = 1388;
   tx(ctx, "POR REGIÃO", 100, y, 28, 900, OURO, "left", 5);
   tx(ctx, "apurado", 570, y, 24, 800, "rgba(251,248,241,.55)", "center", 2);
   tx(ctx, "projeção", CW - 100, y, 24, 800, "rgba(251,248,241,.55)", "right", 2);
   y += 8;
   for (const [nome, apu, p] of c.reg || []) {
-    y += 48;
+    y += 46;
     tx(ctx, nome, 100, y, 34, 900, MARFIM);
     rr(ctx, 440, y - 22, 200, 14, 7); ctx.fillStyle = "rgba(251,248,241,.12)"; ctx.fill();
     rr(ctx, 440, y - 22, Math.max(14, 200 * Math.min(apu, 100) / 100), 14, 7);
