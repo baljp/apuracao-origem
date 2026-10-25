@@ -3700,6 +3700,12 @@ function cardExterior(ctx, d) {
     txCabe(ctx, d.vant, CW / 2, y + 4, 32, 850, MARFIM, CW - 180, "center");
     y += 90;
   }
+  if (d.proj) {
+    rr(ctx, 70, y - 50, CW - 140, 84, 22); ctx.fillStyle = "rgba(251,248,241,.10)"; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = "rgba(251,248,241,.35)"; ctx.stroke();
+    txCabe(ctx, d.proj, CW / 2, y + 4, 30, 850, MARFIM, CW - 180, "center");
+    y += 90;
+  }
   tx(ctx, "PAÍSES COM MAIS ELEITORES", 100, y, 26, 900, OURO, "left", 5);
   y += 12;
   for (const p of d.paises) {
@@ -3958,6 +3964,7 @@ function textoCard(def) {
   if (def.tipo === "exterior" || def.tipo === "pais") {
     return `${def.tipo === "pais" ? def.nome : "Exterior"}: ${nPl} ${n1(def.pPl)}% × ${nPt} `
       + `${n1(100 - def.pPl)}% (${def.oficial ? "TSE" : "parcial, boletins de urna"}). `
+      + (def.proj ? def.proj + " (algoritmo, só exterior). " : "")
       + `Ao vivo: https://${SITE}/ · ${PERFIL}`;
   }
   return `Apuração 2026 ao vivo, com projeção: https://${SITE}/ · ${PERFIL}`;
@@ -4461,6 +4468,67 @@ const bandeira = (nome) => {
 };
 ext.filtro = "todos";
 
+/* ---- projeção do exterior, com o mesmo algoritmo do Brasil -----------------
+ *
+ * É a mesma classe Modelo da projeção nacional, sem nenhum parâmetro mudado —
+ * só alimentada com o exterior: cada cidade com seção faz o papel de um
+ * município, e cada país o de um estado. O viés que ela corrige é o mesmo do
+ * Brasil, só que geográfico de outro jeito: os primeiros boletins vêm da Ásia
+ * e da Oceania (que fecham primeiro e votam muito no Flávio), e quase nada da
+ * Europa e das Américas. O modelo compara o que saiu das urnas com o que
+ * essas mesmas urnas deram no 1º turno, mede a mudança (o "swing") e a aplica
+ * ao que falta, cidade a cidade, a partir do 1º turno de cada uma. */
+function projetarExterior() {
+  const cds = [...ext.cidades.keys()].filter((cd) => EXT_1T[cd] && (EXT_1T[cd][0] + EXT_1T[cd][1]) > 0);
+  if (!cds.length) return null;
+  const pais = (cd) => (PAISES_EXTERIOR[cd] || "Outros").toLowerCase();
+  const base = { ufs: [], cds: [], nms: [], ele: [], pl: [], pt: [], out: [] };
+  const fr = new Map(), obs = {};
+  let votos = 0;
+  for (const cd of cds) {
+    const c = ext.cidades.get(cd), a = EXT_1T[cd], u = pais(cd);
+    base.ufs.push(u); base.cds.push(cd); base.nms.push(cd);
+    base.ele.push(c.te || a[2]); base.pl.push(a[0]); base.pt.push(a[1]);
+    base.out.push(Math.max(0, a[2] - a[0] - a[1]));
+    const f = c.ts ? Math.min(1, (c.st || 0) / c.ts) : 0;
+    if (f > 0 && (c.pl || 0) + (c.pt || 0) > 0) {
+      fr.set(u + "/" + cd, f);
+      const o = obs[u] || (obs[u] = { pl: 0, pt: 0 });
+      o.pl += c.pl; o.pt += c.pt; votos += c.pl + c.pt;
+    }
+  }
+  if (votos < 300) return null;
+  const r = new Modelo(base).projetar(fr, obs, 400);
+  // 1º turno do exterior inteiro, só entre os dois.
+  let t1pl = 0, t1pt = 0;
+  for (const cd of cds) { t1pl += EXT_1T[cd][0]; t1pt += EXT_1T[cd][1]; }
+  return { pPl: r.projecaoPl, lo: r.faixaPl[0], hi: r.faixaPl[1], chPl: r.probPl,
+    vPl: r.totalPl, vPt: r.totalPt, t1: 100 * t1pl / (t1pl + t1pt), apurado: r.pctApurado };
+}
+
+function blocoProjExterior(pr, nPl, nPt) {
+  if (!pr) return "";
+  const mil = (v) => Math.round(v).toLocaleString("pt-BR");
+  const lider = pr.pPl >= 50 ? nPl : nPt, pL = pr.pPl >= 50 ? pr.pPl : 100 - pr.pPl;
+  const ch = pr.pPl >= 50 ? pr.chPl : 1 - pr.chPl;
+  const m1 = 2 * pr.t1 - 100, m2 = 2 * pr.pPl - 100;    // margem Flávio − Lula, em pontos
+  const l1 = m1 >= 0 ? nPl : nPt, l2 = m2 >= 0 ? nPl : nPt;
+  const mud = Math.abs(m2) - Math.abs(m1);
+  const frase = l1 !== l2
+    ? `<b>virou</b>: no 1º turno ${l1} venceu no exterior por ${n1(Math.abs(m1))} pontos; a projeção dá ${l2} por ${n1(Math.abs(m2))}`
+    : `a vantagem de ${l2} no exterior <b>${mud >= 0 ? "aumenta" : "diminui"} ${n1(Math.abs(mud))} pontos</b> (${n1(Math.abs(m1))} → ${n1(Math.abs(m2))})`;
+  const chTxt = ch >= 0.995 ? "mais de 99%" : ch <= 0.5 ? "50%" : Math.round(100 * ch) + "%";
+  return `<div class="vant proj-ext"><div class="vt">Projeção do algoritmo · exterior inteiro, no fim</div>`
+    + `<div class="vl"><span>${nPl}<b>${n1(pr.pPl)}%</b></span><span class="seta">×</span>`
+    + `<span>${nPt}<b>${n1(100 - pr.pPl)}%</b></span>`
+    + `<span>chance de ${lider} vencer no exterior<b>${chTxt}</b></span></div>`
+    + `<div class="vf">Margem de 90%: ${nPl} entre <b>${n1(pr.lo)}% e ${n1(pr.hi)}%</b>. `
+    + `Comparado ao 1º turno (exterior inteiro, só entre os dois): ${frase}. `
+    + `É o mesmo algoritmo da projeção do Brasil, aplicado só ao exterior: corrige o fato de os `
+    + `primeiros votos virem da Ásia e da Oceania e projeta, cidade a cidade, o que falta. `
+    + `Vale só para o exterior — não diz nada sobre o resultado no Brasil.</div></div>`;
+}
+
 function pintaExterior() {
   const porPais = new Map();
   const compara = TURNO === tse.ELEICAO_2T && DEMO === null;
@@ -4522,6 +4590,8 @@ function pintaExterior() {
       + `eleitorado e vota diferente. A projeção nacional começa às 17h.</div></div>`;
   };
   const pPl = v ? 100 * pl / v : null;
+  let proj = null;
+  if (compara && v) { try { proj = projetarExterior(); } catch {} }
   $("extResumo").innerHTML = (v
     ? `<div class="ext-placar placar">`
       + `<div class="lado pl"><div class="quem"><span class="avatar">FB</span><div class="nome">${nPl}</div></div>`
@@ -4547,10 +4617,11 @@ function pintaExterior() {
         + vantagem(pl, pt, t1pl, t1pt, nPl, nPt)
         + `<div class="ex">Pontos percentuais dos votos válidos. No 1º turno havia outros `
         + `candidatos; no 2º os votos deles se dividem entre os dois — por isso os dois costumam subir.</div></div>`
-      : "");
+      : "")
+    + (compara && v ? blocoProjExterior(proj, nPl, nPt) : "");
 
   // Guardado para os cards de compartilhar.
-  ext.ultimo = { lista, pl, pt, te, ts, st, t1pl, t1pt, t1v, compara,
+  ext.ultimo = { lista, pl, pt, te, ts, st, t1pl, t1pt, t1v, compara, proj,
     hora: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }).replace(":", "h") };
   $("btExtCompartilhar").hidden = !v;
 
@@ -4660,7 +4731,15 @@ $("btExtCompartilhar").addEventListener("click", () => {
     votos: `${mil(u.pl)} × ${mil(u.pt)} votos`,
     sub: (ext.modo === "bu" ? `${mil(u.st)} de ${mil(u.ts)} urnas com boletim` : `${n1(u.ts ? 100 * u.st / u.ts : 0)}% das urnas apuradas`)
       + ` · ${u.hora}`,
-    vant: u.compara ? vantTexto(u.pl, u.pt, u.t1pl, u.t1pt) : "", paises });
+    vant: u.compara ? vantTexto(u.pl, u.pt, u.t1pl, u.t1pt) : "",
+    proj: u.proj ? (() => {
+      const nPl = nomes.pl.split(" ")[0], nPt = nomes.pt.split(" ")[0];
+      const lid = u.proj.pPl >= 50 ? nPl : nPt;
+      const ch = u.proj.pPl >= 50 ? u.proj.chPl : 1 - u.proj.chPl;
+      return `Projeção no fim: ${nPl} ${n1(u.proj.pPl)}% × ${n1(100 - u.proj.pPl)}% ${nPt}`
+        + ` · chance de ${lid}: ${ch >= 0.995 ? ">99" : Math.round(100 * ch)}%`;
+    })() : "",
+    paises: u.proj ? paises.slice(0, 6) : paises });
 });
 $("extLista").addEventListener("click", (ev) => {
   const b = ev.target.closest(".pais-sh");
