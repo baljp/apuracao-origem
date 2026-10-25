@@ -309,6 +309,31 @@ h2{
   border-radius:12px;padding:9px 12px;text-align:center;
 }
 
+/* selo da projeção: deixa claro, de longe, que o placar grande é a conta do algoritmo */
+.selo-proj{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:9px 13px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(242,181,68,.28),rgba(242,181,68,.08));border:1.5px solid rgba(242,181,68,.65)}
+.selo-proj .est{font-size:20px;line-height:1}
+.selo-proj b{display:block;font-size:clamp(14px,4.2vw,17px);font-weight:900;letter-spacing:.04em;
+  text-transform:uppercase;color:#FFD27A}
+.selo-proj span{display:block;font-size:12.5px;font-weight:700;color:rgba(255,255,255,.75);margin-top:1px}
+.tse-agora{margin-top:14px;padding:11px 13px;border-radius:14px;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.14)}
+.tse-agora .t{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;font-weight:900;
+  letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.7)}
+.tse-agora .t em{font-style:normal;letter-spacing:0;text-transform:none;font-weight:800;color:rgba(255,255,255,.6)}
+.tse-agora .n{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px}
+.tse-agora .n b{font-size:clamp(22px,6.6vw,30px);font-weight:900;letter-spacing:-.02em}
+.tse-agora .n b.a{color:#93BBFF} .tse-agora .n b.b{color:#FFA39C}
+.tse-agora .n small{font-size:12px;font-weight:800;color:rgba(255,255,255,.6);margin:0 4px}
+.tse-agora .mini{height:7px;border-radius:999px;overflow:hidden;display:flex;background:rgba(255,255,255,.12);gap:2px;margin-top:7px}
+.tse-agora .mini i{display:block;height:100%}
+.proj-placar{margin-top:14px;padding:13px 13px 12px;border-radius:18px;
+  background:linear-gradient(160deg,rgba(242,181,68,.14),rgba(255,255,255,.04));border:1.5px solid rgba(242,181,68,.6);
+  box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.proj-placar .pct{font-size:clamp(30px,9.6vw,54px)}
+.proj-placar .barra{margin-top:14px;height:13px}
+.proj-placar .faixa{font-size:12px!important}
+.compara{display:none!important}
 /* comparação oficial × projeção, dentro do placar */
 .compara{margin-top:16px;display:grid;gap:9px}
 .compara .linha{display:grid;grid-template-columns:96px 1fr 112px;gap:10px;align-items:center}
@@ -1006,8 +1031,9 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
       </div>
       <div id="previaPesquisas">Aguardando o início da apuração.</div></div>
     <div id="placar" style="display:none">
-      <span class="rotulo">Projeção do resultado final</span>
-      <div class="placar" style="margin-top:10px">
+      <div class="selo-proj"><span class="est">★</span><div><b>Projeção do algoritmo</b>
+        <span>onde a apuração do Brasil deve terminar</span></div></div>
+      <div class="placar" style="margin-top:4px">
         <div class="lado pl">
           <div class="quem"><span class="avatar">FB</span>
             <div class="nome" id="nomePL">—</div></div>
@@ -1032,6 +1058,10 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
           <div class="mini"><i id="cmpPrPL"></i><i id="cmpPrPT"></i></div>
           <span class="v" id="cmpPrV">—</span></div>
       </div>
+      <div class="tse-agora"><div class="t">Apurado no TSE agora<em id="tseAgApu"></em></div>
+        <div class="n"><span><b class="a" id="tseAgPL">—</b><small id="tseAgNPL"></small></span>
+          <span><small id="tseAgNPT"></small><b class="b" id="tseAgPT">—</b></span></div>
+        <div class="mini"><i id="tseAgBPL"></i><i id="tseAgBPT"></i></div></div>
       <div class="oqueE"><b>Oficial TSE</b> é o que já foi contado.
         <b>Projeção</b> é onde a conta deve terminar, porque cada região
         apura num ritmo diferente.</div>
@@ -1876,6 +1906,14 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
     $(idV).textContent = n1(vPl) + " × " + n1(100 - vPl);
   };
   duelo("cmpOfPL", "cmpOfPT", "cmpOfV", r.brutoPl);
+  if (r.brutoPl != null) {
+    $("tseAgPL").textContent = n1(r.brutoPl) + "%";
+    $("tseAgPT").textContent = n1(100 - r.brutoPl) + "%";
+    $("tseAgNPL").textContent = curtoPl; $("tseAgNPT").textContent = curtoPt;
+    $("tseAgApu").textContent = n1(r.pctApurado) + "% das urnas";
+    $("tseAgBPL").style.cssText = "width:" + r.brutoPl + "%;background:var(--pl-vivo)";
+    $("tseAgBPT").style.cssText = "width:" + (100 - r.brutoPl) + "%;background:var(--pt-vivo)";
+  }
   duelo("cmpPrPL", "cmpPrPT", "cmpPrV", r.projecaoPl);
 
   const p = r.probPl;
@@ -2646,13 +2684,14 @@ function cardExterior(ctx, d) {
   }
   if (d.proj) {
     y += 16;
-    rr(ctx, 70, y - 54, CW - 140, 186, 22); ctx.fillStyle = "rgba(251,248,241,.10)"; ctx.fill();
-    ctx.lineWidth = 2; ctx.strokeStyle = "rgba(251,248,241,.35)"; ctx.stroke();
-    txCabe(ctx, d.proj[0], CW / 2, y + 2, 36, 850, MARFIM, CW - 180, "center");
-    txCabe(ctx, d.proj[1], CW / 2, y + 56, 40, 900, OURO, CW - 180, "center");
-    txCabe(ctx, "Só votos do exterior · não é o resultado do Brasil", CW / 2, y + 104, 27, 800,
+    rr(ctx, 70, y - 54, CW - 140, 262, 26); ctx.fillStyle = "rgba(242,181,68,.14)"; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = "rgba(242,181,68,.8)"; ctx.stroke();
+    tx(ctx, "★ PROJEÇÃO DO ALGORITMO · EXTERIOR", CW / 2, y, 26, 900, OURO, "center", 4);
+    txCabe(ctx, d.proj[0].replace(/^Projeção só do exterior: /, ""), CW / 2, y + 72, 58, 900, MARFIM, CW - 180, "center");
+    txCabe(ctx, d.proj[1], CW / 2, y + 128, 38, 900, OURO, CW - 180, "center");
+    txCabe(ctx, "Só votos do exterior · não é o resultado do Brasil", CW / 2, y + 176, 25, 800,
       "rgba(251,248,241,.75)", CW - 180, "center");
-    y += 192;
+    y += 268;
   }
   tx(ctx, "PAÍSES COM MAIS ELEITORES", 100, y, 26, 900, OURO, "left", 5);
   y += 12;
@@ -3625,6 +3664,28 @@ function projetarExterior() {
     vPl: r.totalPl, vPt: r.totalPt, t1: 100 * t1pl / (t1pl + t1pt), apurado: r.pctApurado };
 }
 
+/* O placar da projeção do exterior, com a mesma cara do placar do TSE e logo
+ * abaixo dele: é a resposta para "como o exterior vai terminar?". */
+function placarProjExterior(pr, nPl, nPt) {
+  if (!pr) return "";
+  const ch = pr.pPl >= 50 ? pr.chPl : 1 - pr.chPl;
+  const lider = pr.pPl >= 50 ? nPl : nPt;
+  const chTxt = Math.min(99, Math.max(50, Math.round(100 * ch))) + "%";
+  return `<div class="proj-placar">`
+    + `<div class="selo-proj"><span class="est">★</span><div><b>Projeção · exterior</b>`
+    + `<span>onde o exterior deve terminar</span></div></div>`
+    + `<div class="ext-placar placar">`
+    + `<div class="lado pl"><div class="quem"><span class="avatar">FB</span><div class="nome">${nPl}</div></div>`
+    + `<div class="pct">${n1(pr.pPl)}%</div><div class="faixa">entre ${n1(pr.lo)}% e ${n1(pr.hi)}%</div></div>`
+    + `<div class="lado pt dir"><div class="quem"><span class="avatar">L</span><div class="nome">${nPt}</div></div>`
+    + `<div class="pct">${n1(100 - pr.pPl)}%</div><div class="faixa">entre ${n1(100 - pr.hi)}% e ${n1(100 - pr.lo)}%</div></div></div>`
+    + `<div class="barra"><i style="width:${pr.pPl}%;background:linear-gradient(90deg,#1D4ED8,#60A5FA)"></i>`
+    + `<i style="width:${100 - pr.pPl}%;background:linear-gradient(90deg,#F87171,#B91C1C)"></i></div>`
+    + `<div class="meio"><span>50%</span></div>`
+    + `<div class="chance-ext">${lider}: chance de vencer <u>no exterior</u> em <b>${chTxt}</b></div>`
+    + `<div class="so-ext">🌎 Vale só para o exterior — não é a apuração nem a projeção do Brasil</div></div>`;
+}
+
 function blocoProjExterior(pr, nPl, nPt) {
   if (!pr) return "";
   const mil = (v) => Math.round(v).toLocaleString("pt-BR");
@@ -3637,16 +3698,10 @@ function blocoProjExterior(pr, nPl, nPt) {
     ? `<b>virou</b>: no 1º turno ${l1} venceu no exterior por ${n1(Math.abs(m1))} pontos; a projeção dá ${l2} por ${n1(Math.abs(m2))}`
     : `a vantagem de ${l2} no exterior <b>${mud >= 0 ? "aumenta" : "diminui"} ${n1(Math.abs(mud))} pontos</b> (${n1(Math.abs(m1))} → ${n1(Math.abs(m2))})`;
   const chTxt = Math.min(99, Math.max(50, Math.round(100 * ch))) + "%";
-  return `<div class="vant proj-ext"><div class="vt">Projeção do algoritmo · só os votos do exterior</div>`
-    + `<div class="so-ext">🌎 Vale só para o exterior — não é a apuração nem a projeção do Brasil</div>`
-    + `<div class="vl"><span>${nPl}<b>${n1(pr.pPl)}%</b></span><span class="seta">×</span>`
-    + `<span>${nPt}<b>${n1(100 - pr.pPl)}%</b></span>`
-    + `</div><div class="chance-ext">${lider}: chance de vencer <u>no exterior</u> em <b>${chTxt}</b></div>`
-    + `<div class="vf">Margem de 90%: ${nPl} entre <b>${n1(pr.lo)}% e ${n1(pr.hi)}%</b>. `
-    + `Comparado ao 1º turno (exterior inteiro, só entre os dois): ${frase}. `
-    + `É o mesmo algoritmo da projeção do Brasil, aplicado só ao exterior: corrige o fato de os `
-    + `primeiros votos virem da Ásia e da Oceania e projeta, cidade a cidade, o que falta. `
-    + `Vale só para o exterior — não diz nada sobre o resultado no Brasil.</div></div>`;
+  return `<div class="vant proj-ext"><div class="vt">Como o algoritmo chega na projeção do exterior</div>`
+    + `<div class="vf">Contra o 1º turno (exterior inteiro, só entre os dois): ${frase}. `
+    + `Mesmo algoritmo do Brasil, aplicado só ao exterior: corrige o fato de os primeiros `
+    + `votos virem da Ásia e da Oceania e projeta, cidade a cidade, o que falta.</div></div>`;
 }
 
 function pintaExterior() {
@@ -3706,14 +3761,14 @@ function pintaExterior() {
     return `<div class="vant"><div class="vt">Só entre os dois, como o algoritmo calcula</div>`
       + `<div class="vl"><span>1º turno<b>${lider1} +${n1(Math.abs(m1))}</b></span><span class="seta">→</span>`
       + `<span>agora<b>${lider2} +${n1(Math.abs(m2))}</b></span></div>`
-      + `<div class="vf">No exterior, ${frase}. Isso não se estende ao Brasil: o exterior é 0,6% do `
-      + `eleitorado e vota diferente. A projeção nacional começa às 17h.</div></div>`;
+      + `<div class="vf">No exterior, ${frase}.</div></div>`;
   };
   const pPl = v ? 100 * pl / v : null;
   let proj = null;
   if (compara && v) { try { proj = projetarExterior(); } catch {} }
   $("extResumo").innerHTML = (v
-    ? `<div class="ext-placar placar">`
+    ? `<span class="rotulo" style="display:block;margin:2px 0 8px">Contado até agora</span>`
+      + `<div class="ext-placar placar">`
       + `<div class="lado pl"><div class="quem"><span class="avatar">FB</span><div class="nome">${nPl}</div></div>`
       + `<div class="pct">${n1(pPl)}%</div><div class="faixa">${mil(pl)} votos</div></div>`
       + `<div class="lado pt dir"><div class="quem"><span class="avatar">L</span><div class="nome">${nPt}</div></div>`
@@ -3723,6 +3778,7 @@ function pintaExterior() {
       + `<div class="meio"><span>50%</span></div>`
       + `<div class="ext-vence"><span>🔵 ${nPl} à frente em ${vencePl} ${vencePl === 1 ? "país" : "países"}</span>`
       + `<span>🔴 ${nPt} à frente em ${vencePt} ${vencePt === 1 ? "país" : "países"}</span></div>`
+      + (compara ? placarProjExterior(proj, nPl, nPt) : "")
     : `<div class="faixa" style="color:rgba(255,255,255,.78)">Ainda não há voto do exterior. `
       + `Os primeiros chegam quando as seções da Ásia e da Oceania fecham.</div>`)
     + `<div class="ext-stats">`
@@ -3903,7 +3959,7 @@ $("btExtCompartilhar").addEventListener("click", () => {
       return [`Projeção só do exterior: ${nPl} ${n1(u.proj.pPl)}% × ${n1(100 - u.proj.pPl)}% ${nPt}`,
         `${lid}: chance de vencer no exterior em ${Math.min(99, Math.max(50, Math.round(100 * ch)))}%`];
     })() : "",
-    paises: u.proj ? paises.slice(0, 5) : paises });
+    paises: u.proj ? paises.slice(0, 4) : paises });
 });
 function defRegiao(r) {
   const mil = (v) => Math.round(v).toLocaleString("pt-BR");
@@ -5257,7 +5313,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=d6336fa31e").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=f0307ad5b6").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
