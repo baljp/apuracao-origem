@@ -1227,6 +1227,7 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
     <div class="ext-lista" id="regioes"></div>
     <button class="bt-ouro" id="btRegioesBR" style="margin-top:14px;width:100%">Compartilhar todas as regiões no Instagram / WhatsApp</button>
     <button class="bt-sec forte" id="btOrigem" style="margin-top:10px;width:100%">Stories: de onde veio a vitória (1º × 2º turno)</button>
+    <button class="bt-sec forte" id="btTransf" style="margin-top:10px;width:100%">Stories: para onde foram os votos (estimativa)</button>
   </div>
 
   <div class="cartao painel" id="cartaoExterior">
@@ -4442,6 +4443,52 @@ function cardOrigem(ctx) {
   rodape(ctx, "Siga " + PERFIL, "Saldos do TSE: não dá para saber voto a voto quem migrou para quem");
 }
 
+/* "Para onde foram os votos": estimativa da divisão de cada fonte entre os
+ * dois. Ninguém vê voto a voto; a estimativa vem de comparar os 27 estados e
+ * o exterior: em cada lugar, quanto cada candidato cresceu × quantos votos de
+ * outros candidatos, de abstenção a menos e de brancos/nulos a menos havia
+ * ali. Proporções entre 0 e 100%, somando exatamente o crescimento nacional
+ * de cada um; "faixa" = soluções quase tão boas quanto a melhor. */
+const TRANSF = [
+  // [fonte, votos, % para Lula (melhor estimativa), faixa mín, faixa máx]
+  ["Votos de outros candidatos no 1º turno", 9316747, 72, 61, 84, "Cury, Renan Santos, Caiado, Zema e outros"],
+  ["Abstenção a menos (quem faltou e voltou)", 2960491, 63, 25, 98, "21,08% → 19,21% de abstenção"],
+  ["Brancos e nulos a menos", 1821278, 99, 76, 100, "4,76% → 3,23% de quem votou"],
+];
+function cardTransf(ctx) {
+  const nPl = nomes.pl.split(" ")[0], nPt = nomes.pt.split(" ")[0];
+  const mi = (v) => (Math.trunc(v / 1e4) / 100).toFixed(2).replace(".", ",") + " mi";
+  fundo(ctx, "rgba(255,90,82,.08)", 300);
+  marca(ctx, "ANÁLISE · 1º × 2º TURNO");
+  tx(ctx, "Para onde foram", CW / 2, 300, 90, 700, MARFIM, "center", 0, SLAB);
+  tx(ctx, "os votos?", CW / 2, 392, 90, 700, gradTexto(ctx, 300, 780, "#FFF3D1", OURO), "center", 0, SLAB);
+  tx(ctx, "14,09 milhões de votos em jogo · estimativa estatística", CW / 2, 448, 28, 800, "rgba(251,248,241,.75)", "center");
+  let y = 500, tL = 0, tF = 0;
+  for (const [nome, v, p, lo, hi, sub] of TRANSF) {
+    const vL = v * p / 100, vF = v - vL; tL += vL; tF += vF;
+    rr(ctx, 70, y, CW - 140, 268, 26); ctx.fillStyle = "rgba(251,248,241,.07)"; ctx.fill();
+    txCabe(ctx, nome.toUpperCase(), 100, y + 50, 24, 900, OURO, CW - 200, "left");
+    tx(ctx, mi(v), CW - 100, y + 50, 30, 900, MARFIM, "right");
+    tx(ctx, sub, 100, y + 84, 22, 750, "rgba(251,248,241,.6)");
+    const bx = 100, bw = CW - 200, by = y + 108, bh = 56, wl = bw * p / 100;
+    ctx.save(); rr(ctx, bx, by, bw, bh, 28); ctx.clip();
+    ctx.fillStyle = gradTexto(ctx, bx, bx + wl, VERM_F, VERM); ctx.fillRect(bx, by, wl - 2, bh);
+    ctx.fillStyle = gradTexto(ctx, bx + wl, bx + bw, AZUL, AZUL_F); ctx.fillRect(bx + wl + 2, by, bw - wl - 2, bh);
+    ctx.restore();
+    tx(ctx, nPt + " " + p + "%", bx + 24, by + 39, 32, 900, "#fff");
+    if (100 - p >= 12) tx(ctx, (100 - p) + "% " + nPl, bx + bw - 24, by + 39, 32, 900, "#fff", "right");
+    tx(ctx, nPt + " +" + mi(vL), 100, y + 206, 28, 900, "#FFADA6");
+    tx(ctx, nPl + " +" + mi(vF), CW - 100, y + 206, 28, 900, "#A9CAFF", "right");
+    tx(ctx, `faixa provável para ${nPt}: ${lo}% a ${hi}%`, CW / 2, y + 246, 21, 800, "rgba(251,248,241,.55)", "center");
+    y += 286;
+  }
+  rr(ctx, 70, y, CW - 140, 96, 24); ctx.fillStyle = "rgba(242,181,68,.14)"; ctx.fill();
+  ctx.lineWidth = 2; ctx.strokeStyle = "rgba(242,181,68,.6)"; ctx.stroke();
+  tx(ctx, `Total: ${nPt} +${mi(tL)} · ${nPl} +${mi(tF)}`, CW / 2, y + 44, 34, 900, OURO, "center");
+  tx(ctx, "bate com o resultado do TSE", CW / 2, y + 78, 21, 800, "rgba(251,248,241,.7)", "center");
+  rodape(ctx, "Siga " + PERFIL, "Estimativa estatística (comparação entre estados), não contagem voto a voto · dados: TSE");
+}
+
 function cardPais(ctx, d) {
   fundo(ctx, null, 340);
   marca(ctx, "EXTERIOR");
@@ -4583,6 +4630,7 @@ async function desenharCard(def) {
   else if (def.tipo === "regiaoBR") cardRegiaoBR(ctx, def);
   else if (def.tipo === "acerto") cardAcerto(ctx, def);
   else if (def.tipo === "origem") cardOrigem(ctx);
+  else if (def.tipo === "transf") cardTransf(ctx);
   else if (def.tipo === "regioesBR") cardRegioesBR(ctx, def);
   else if (def.tipo === "estado") cardEstado(ctx, def);
   return cv;
@@ -4713,6 +4761,12 @@ function textoCard(def) {
       + `\n✅ Apurado no TSE: ${nPl} ${n1(def.e.obsPl)}% × ${nPt} ${n1(100 - def.e.obsPl)}%`
       + `\n★ Projeção do algoritmo: ${nPl} ${n1(def.e.projPl)}% × ${nPt} ${n1(100 - def.e.projPl)}%`
       + extra(def) + (cid ? "\n\nCidades:\n" + cid : "") + fim;
+  }
+  if (def.tipo === "transf") {
+    const mi = (v) => (v / 1e6).toFixed(2).replace(".", ",") + " mi";
+    return `📊 Para onde foram os votos no 2º turno? (estimativa estatística)\n\n` + TRANSF.map(([n, v, p, lo, hi]) =>
+      `• ${n} (${mi(v)}): ${p}% para ${nPt} (+${mi(v * p / 100)}) e ${100 - p}% para ${nPl} (+${mi(v * (100 - p) / 100)}). Faixa provável: ${lo}% a ${hi}%.`).join("\n")
+      + `\n\nEstimativa por comparação entre os 27 estados e o exterior — ninguém vê o voto individual.\nAo vivo: https://${SITE}/ · ${PERFIL}`;
   }
   if (def.tipo === "origem") {
     const b = ORIGEM_1T2T.brasil, mi = (v) => (v / 1e6).toFixed(2).replace(".", ",") + " milhões";
@@ -6111,6 +6165,7 @@ $("btAcerto").addEventListener("click", async () => {
   const d = dadosAcerto(); if (d) abrirCard(d);
 });
 $("btOrigem").addEventListener("click", () => abrirCard({ tipo: "origem" }));
+$("btTransf").addEventListener("click", () => abrirCard({ tipo: "transf" }));
 $("btAcertoPT").addEventListener("click", async () => {
   if (!histServidor) { histLido = 0; await carregarHistorico(); }
   const d = dadosAcerto(); if (d) abrirCard(Object.assign(d, { lado: "pt" }));
