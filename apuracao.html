@@ -4323,7 +4323,28 @@ function cardAcerto(ctx, d) {
   tx(ctx, "O algoritmo", CW / 2, 300, 100, 700, MARFIM, "center", 0, SLAB);
   tx(ctx, "acertou?", CW / 2, 400, 100, 700, gradTexto(ctx, 300, 780, "#FFF3D1", OURO), "center", 0, SLAB);
   tx(ctx, "Projeção da noite × resultado final do TSE", CW / 2, 460, 30, 800, "rgba(251,248,241,.75)", "center");
-  blocoDuelo(ctx, 520, 280, "RESULTADO FINAL · TSE · " + n2(d.pct) + "% DAS URNAS", d.fim, false);
+  if (lula) {
+    // Lula à esquerda e Flávio à direita: o vencedor primeiro, e este card
+    // fica visualmente diferente do outro.
+    const y0 = 520, h = 280, tit = "RESULTADO FINAL · TSE · " + n2(d.pct) + "% DAS URNAS";
+    rr(ctx, 60, y0, CW - 120, h, 36); ctx.fillStyle = "rgba(251,248,241,.06)"; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = "rgba(251,248,241,.16)"; ctx.stroke();
+    tx(ctx, tit, CW / 2, y0 + 56, 26, 900, "rgba(251,248,241,.7)", "center", 4);
+    tx(ctx, nomes.pt.split(" ")[0].toUpperCase() + " · VENCEU", 100, y0 + 104, 30, 900, VERM, "left", 3);
+    tx(ctx, nomes.pl.split(" ")[0].toUpperCase(), CW - 100, y0 + 104, 30, 900, AZUL, "right", 3);
+    const tA = n1(100 - d.fim) + "%", tB = n1(d.fim) + "%";
+    let tam = 104;
+    while (tam > 60 && Math.max(largura(ctx, tA, tam, 900), largura(ctx, tB, tam, 900)) > (CW - 192) / 2 - 30) tam -= 4;
+    tx(ctx, tA, 96, y0 + 206, tam, 900, "#FFADA6");
+    tx(ctx, tB, CW - 96, y0 + 206, tam, 900, "#A9CAFF", "right");
+    const bx = 100, by = y0 + 236, bw = CW - 200, bh = 24, wp = bw * (100 - d.fim) / 100;
+    rr(ctx, bx, by, bw, bh, bh / 2); ctx.fillStyle = "rgba(255,255,255,.1)"; ctx.fill();
+    ctx.save(); rr(ctx, bx, by, bw, bh, bh / 2); ctx.clip();
+    ctx.fillStyle = gradTexto(ctx, bx, bx + wp, VERM_F, VERM); ctx.fillRect(bx, by, wp - 3, bh);
+    ctx.fillStyle = gradTexto(ctx, bx + wp, bx + bw, AZUL, AZUL_F); ctx.fillRect(bx + wp + 3, by, bw - wp - 3, bh);
+    ctx.restore();
+    ctx.fillStyle = "#fff"; rr(ctx, bx + bw / 2 - 3, by - 12, 6, bh + 24, 3); ctx.fill();
+  } else blocoDuelo(ctx, 520, 280, "RESULTADO FINAL · TSE · " + n2(d.pct) + "% DAS URNAS", d.fim, false);
   let y = 880;
   tx(ctx, "APURADO", 100, y, 22, 900, OURO, "left", 3);
   tx(ctx, "TSE NA HORA", 470, y, 22, 900, OURO, "center", 3);
@@ -4337,7 +4358,7 @@ function cardAcerto(ctx, d) {
     const yy = y - passo / 2 + 18;
     tx(ctx, Math.floor(l.a) + "%", 100, yy, 34, 900, MARFIM);
     tx(ctx, nPl + " " + n1(vv(l.o)), 470, yy, 28, 800, "rgba(251,248,241,.6)", "center");
-    tx(ctx, nPl + " " + n1(vv(l.p)), 760, yy, 30, 900, "#FFD27A", "center");
+    tx(ctx, nPl + " " + n1(vv(l.p)), 760, yy, 30, 900, lula ? "#FFADA6" : "#FFD27A", "center");
     const e = Math.abs(l.eP);
     tx(ctx, (e < 0.005 ? "0,00" : n1(e)) + " pt", CW - 100, yy, 32, 900, e <= 0.5 ? "#6EE7B7" : e <= 1 ? "#FFD27A" : "#FCA5A5", "right");
   }
