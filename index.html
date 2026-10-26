@@ -1184,6 +1184,7 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
       <button class="bt-sec" id="btRegistroCSV">Baixar registro completo</button>
       <button class="bt-sec" id="btRegistroCopiar">Copiar resumo</button>
       <button class="bt-sec forte" id="btStories">Formato stories</button>
+      <button class="bt-sec forte" id="btAcerto">Stories: o acerto do algoritmo</button>
     </div>
     <div class="faixa" style="margin-top:10px" id="registroNota">Cada ponto guarda,
       no momento em que a apuração cruzou aquele percentual, o número oficial do
@@ -1612,7 +1613,7 @@ const DEMO = (() => {
  */
 /* 1º turno por UF: [abstenção, comparecimento, brancos+nulos] (TSE, eleição 6257). */
 const T1_UF = {"ac":[125412,488330,19264],"al":[503698,1938428,119572],"am":[564062,2234549,63786],"ap":[100426,476562,11704],"ba":[2259151,9053601,493310],"ce":[1086074,5910471,292657],"df":[426924,1831396,58588],"es":[639368,2352282,101204],"go":[1109003,3971587,143764],"ma":[1022772,4160343,149904],"mg":[3735098,12637274,661039],"ms":[483210,1541220,50942],"mt":[585668,2052133,58845],"pa":[1195893,5066504,203332],"pb":[564543,2683988,170241],"pe":[1312388,5911062,310045],"pi":[463875,2240883,94489],"pr":[1772200,6841457,256214],"rj":[2997846,9859802,490102],"rn":[488812,2171013,99115],"ro":[274813,991080,23021],"rr":[68749,332772,7227],"rs":[1819642,6702903,279857],"sc":[1086492,4648159,147262],"se":[301053,1439082,74886],"sp":[7690900,26431992,1549044],"to":[216827,965196,34749],"zz":[574345,341766,10884]};
-let ultimoObservado = null;
+let ultimoObservado = null, histServidor = null;
 let ultimoComp = null, ultimoT1 = null, ultimoTotais = null, ultimoBrasil = null, ultimaHoraTSE = "";
 const T1_BR = Object.values(T1_UF).reduce((a, x) => [a[0] + x[0], a[1] + x[1], a[2] + x[2]], [0, 0, 0]);
 /* Total nacional do TSE (o que o aplicativo mostra), quando está à frente da
@@ -3172,6 +3173,56 @@ function cardRegioesBR(ctx, d) {
   rodape(ctx, "Siga " + PERFIL);
 }
 
+/* "O algoritmo acertou?": a projeção em cada marco da noite contra o
+ * resultado final, ao lado do que o número cru do TSE mostrava no mesmo
+ * momento. */
+function dadosAcerto() {
+  const b = ultimoBrasil, r = ultimoR;
+  const fim = b && b.pl + b.pt ? 100 * b.pl / (b.pl + b.pt) : r && r.brutoPl;
+  if (fim == null) return null;
+  const fonte = (histServidor && histServidor.length ? histServidor.map((p) => ({ a: p.a, o: p.o, p: p.p }))
+    : registro.map((x) => ({ a: x.pct, o: x.of, p: x.pr }))).filter((x) => x.o != null && x.p != null);
+  const linhas = [];
+  for (const k of [1, 5, 10, 20, 30, 50, 75, 90]) {
+    const x = fonte.find((q) => q.a >= k);
+    if (x && x.a < k + 3) linhas.push({ k, a: x.a, o: x.o, p: x.p, eP: x.p - fim, eO: x.o - fim });
+  }
+  if (!linhas.length) return null;
+  return { tipo: "acerto", fim, pct: b ? b.pst : r.pctApurado, linhas };
+}
+function cardAcerto(ctx, d) {
+  fundo(ctx, "rgba(242,181,68,.10)", 300);
+  marca(ctx, "RESULTADO");
+  const nPl = nomes.pl.split(" ")[0], nPt = nomes.pt.split(" ")[0];
+  tx(ctx, "O algoritmo", CW / 2, 300, 100, 700, MARFIM, "center", 0, SLAB);
+  tx(ctx, "acertou?", CW / 2, 400, 100, 700, gradTexto(ctx, 300, 780, "#FFF3D1", OURO), "center", 0, SLAB);
+  tx(ctx, "Projeção da noite × resultado final do TSE", CW / 2, 460, 30, 800, "rgba(251,248,241,.75)", "center");
+  blocoDuelo(ctx, 520, 280, "RESULTADO FINAL · TSE · " + n2(d.pct) + "% DAS URNAS", d.fim, false);
+  let y = 880;
+  tx(ctx, "APURADO", 100, y, 22, 900, OURO, "left", 3);
+  tx(ctx, "TSE NA HORA", 470, y, 22, 900, OURO, "center", 3);
+  tx(ctx, "★ PROJEÇÃO", 760, y, 22, 900, OURO, "center", 3);
+  tx(ctx, "ERRO", CW - 100, y, 22, 900, OURO, "right", 3);
+  y += 14;
+  const passo = Math.min(76, Math.floor((CH - 430 - y) / d.linhas.length));
+  for (const l of d.linhas) {
+    y += passo;
+    rr(ctx, 70, y - passo + 14, CW - 140, passo - 10, 16); ctx.fillStyle = "rgba(251,248,241,.06)"; ctx.fill();
+    const yy = y - passo / 2 + 18;
+    tx(ctx, Math.floor(l.a) + "%", 100, yy, 34, 900, MARFIM);
+    tx(ctx, nPl + " " + n1(l.o), 470, yy, 28, 800, "rgba(251,248,241,.6)", "center");
+    tx(ctx, nPl + " " + n1(l.p), 760, yy, 30, 900, "#FFD27A", "center");
+    const e = Math.abs(l.eP);
+    tx(ctx, (e < 0.005 ? "0,00" : n1(e)) + " pt", CW - 100, yy, 32, 900, e <= 0.5 ? "#6EE7B7" : e <= 1 ? "#FFD27A" : "#FCA5A5", "right");
+  }
+  const l1 = d.linhas[0];
+  y += 64;
+  txCabe(ctx, `Com ${Math.floor(l1.a)}% apurado, o TSE mostrava ${nPl} ${n1(l1.o)}% (erro de ${n1(Math.abs(l1.eO))} pt);`,
+    CW / 2, y, 27, 800, MARFIM, CW - 140, "center");
+  txCabe(ctx, `a projeção já apontava ${n1(l1.p)}% — ${n1(Math.abs(l1.eP))} pt do final.`, CW / 2, y + 40, 27, 800, OURO, CW - 140, "center");
+  rodape(ctx, "Siga " + PERFIL, "Final: TSE · erro = distância da projeção até o resultado final, em pontos");
+}
+
 function cardPais(ctx, d) {
   fundo(ctx, null, 340);
   marca(ctx, "EXTERIOR");
@@ -3311,6 +3362,7 @@ async function desenharCard(def) {
   else if (def.tipo === "regiao") cardRegiao(ctx, def);
   else if (def.tipo === "regioes") cardRegioes(ctx, def);
   else if (def.tipo === "regiaoBR") cardRegiaoBR(ctx, def);
+  else if (def.tipo === "acerto") cardAcerto(ctx, def);
   else if (def.tipo === "regioesBR") cardRegioesBR(ctx, def);
   else if (def.tipo === "estado") cardEstado(ctx, def);
   return cv;
@@ -3441,6 +3493,11 @@ function textoCard(def) {
       + `\n✅ Apurado no TSE: ${nPl} ${n1(def.e.obsPl)}% × ${nPt} ${n1(100 - def.e.obsPl)}%`
       + `\n★ Projeção do algoritmo: ${nPl} ${n1(def.e.projPl)}% × ${nPt} ${n1(100 - def.e.projPl)}%`
       + extra(def) + (cid ? "\n\nCidades:\n" + cid : "") + fim;
+  }
+  if (def.tipo === "acerto") {
+    const l = def.linhas.map((x) => `• ${Math.floor(x.a)}% apurado: TSE ${nPl} ${n1(x.o)}% · ★ projeção ${n1(x.p)}% · erro ${n1(Math.abs(x.eP))} pt`).join("\n");
+    return `🎯 O algoritmo acertou?\n✅ Resultado final (TSE): ${nPl} ${n1(def.fim)}% × ${nPt} ${n1(100 - def.fim)}%\n\n${l}`
+      + `\n\nAo vivo: https://${SITE}/ · ${PERFIL}`;
   }
   if (def.tipo === "regiaoBR" && def.R.of != null) {
     const R = def.R;
@@ -4634,6 +4691,7 @@ async function carregarHistorico() {
   const pts = (h && Array.isArray(h.pontos) ? h.pontos : [])
     .filter((p) => p && typeof p.a === "number" && typeof p.p === "number").sort((a, b) => a.a - b.a);
   if (!pts.length) return;
+  histServidor = pts;
   // Trajetória nacional.
   let mexeu = false;
   for (const p of pts) {
@@ -4816,6 +4874,10 @@ function renderRegioes(r, observado, totais, horaTSE) {
   $("cartaoRegioes").style.display = linhas.length ? "block" : "none";
   $("regioes").innerHTML = linhas.join("");
 }
+$("btAcerto").addEventListener("click", async () => {
+  if (!histServidor) { histLido = 0; await carregarHistorico(); }
+  const d = dadosAcerto(); if (d) abrirCard(d);
+});
 $("regioes").addEventListener("click", (ev) => {
   const b = ev.target.closest(".regbr-sh"); if (!b) return;
   const R = regBR.find((x) => x.k === b.dataset.reg); if (R) abrirCard({ tipo: "regiaoBR", R });
@@ -5817,7 +5879,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=ce16051a49").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=6fe0970a28").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
