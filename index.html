@@ -1229,6 +1229,7 @@ button:focus-visible{outline:2px solid var(--pl);outline-offset:2px}
       <span class="pilula">TSE agora · projeção</span></div>
     <div class="ext-lista" id="regioes"></div>
     <button class="bt-ouro" id="btRegioesBR" style="margin-top:14px;width:100%">Compartilhar todas as regiões no Instagram / WhatsApp</button>
+    <button class="bt-sec forte" id="btOrigem" style="margin-top:10px;width:100%">Stories: de onde veio a vitória (1º × 2º turno)</button>
   </div>
 
   <div class="cartao painel" id="cartaoExterior">
@@ -3249,6 +3250,77 @@ function cardAcerto(ctx, d) {
   rodape(ctx, "Siga " + PERFIL, "Final: TSE · erro = distância da projeção até o resultado final, em pontos");
 }
 
+/* "De onde veio a vitória": 1º turno × 2º turno, nacional e por região.
+ * Números finais do TSE (eleições 6257 e 6258), por região:
+ * [Flávio1, Lula1, válidos1, br+nulos1, abst1, comp1, Flávio2, Lula2, válidos2, br+nulos2, abst2, comp2]. */
+const ORIGEM_1T2T = {"norte":[5009437,4550602,10191910,363083,2546182,10554993,5023528,5024482,10048010,268934,2783729,10316944],"nordeste":[10398973,21494584,33704652,1804219,8002366,35508871,10796569,24449844,35246413,1088444,7175128,36334857],"centro-oeste":[5133436,2963043,9084197,312139,2604805,9396336,5603867,3733919,9337786,257568,2406342,9595354],"sudeste":[24899609,19237398,48479961,2801389,15063212,51281350,26843487,24035601,50879088,2012923,13448711,52892011],"sul":[10519148,5476524,17509186,683333,4678334,18192519,11385893,6809370,18195263,516017,4159353,18711280],"exterior":[143900,157387,330882,10884,574345,341766,171497,200154,371651,9792,534817,381443],"brasil":[56104503,53879538,119300788,5975047,33469244,125275835,59824860,64253514,124078374,4153681,30508097,128232055]};
+function cardOrigem(ctx) {
+  const D = ORIGEM_1T2T, b = D.brasil;
+  const nPl = nomes.pl.split(" ")[0], nPt = nomes.pt.split(" ")[0];
+  const mi = (v) => (v / 1e6).toFixed(2).replace(".", ",") + " mi";
+  const sg = (v) => (v >= 0 ? "+" : "−") + n1(Math.abs(v));
+  fundo(ctx, "rgba(255,90,82,.08)", 300);
+  marca(ctx, "ANÁLISE · 1º × 2º TURNO");
+  tx(ctx, "De onde veio", CW / 2, 300, 92, 700, MARFIM, "center", 0, SLAB);
+  tx(ctx, "a vitória de " + nPt, CW / 2, 392, 92, 700, gradTexto(ctx, 240, 840, "#FFD0CC", "#FF7A70"), "center", 0, SLAB);
+  tx(ctx, "votos válidos · resultado final do TSE", CW / 2, 446, 28, 800, "rgba(251,248,241,.7)", "center");
+  // ganhos de cada um
+  const lado = (x, nome, cor, v1, vv1, v2, vv2) => {
+    rr(ctx, x, 480, 450, 220, 26); ctx.fillStyle = "rgba(251,248,241,.07)"; ctx.fill();
+    tx(ctx, nome.toUpperCase(), x + 30, 530, 28, 900, cor, "left", 3);
+    tx(ctx, "+" + mi(v2 - v1), x + 30, 610, 66, 900, MARFIM);
+    tx(ctx, "votos a mais que no 1º turno", x + 30, 648, 22, 800, "rgba(251,248,241,.6)");
+    tx(ctx, n1(100 * v1 / vv1) + "% → " + n1(100 * v2 / vv2) + "%  (" + sg(100 * (v2 / vv2 - v1 / vv1)) + " pt)", x + 30, 684, 24, 850, cor);
+  };
+  lado(70, nPt, "#FFADA6", b[1], b[2], b[7], b[8]);
+  lado(560, nPl, "#A9CAFF", b[0], b[2], b[6], b[8]);
+  // de onde vieram
+  const outros = b[2] - b[0] - b[1], dAbs = b[4] - b[10], dBn = b[3] - b[9];
+  const gL = b[7] - b[1], gF = b[6] - b[0], tot = gL + gF;
+  let y = 760;
+  tx(ctx, "OS " + mi(tot).toUpperCase() + " DE VOTOS A MAIS VIERAM DE", CW / 2, y, 25, 900, OURO, "center", 4);
+  const fonte = [[outros, "eleitores de outros", "candidatos no 1º turno"], [dAbs, "pessoas que tinham", "faltado e foram votar"],
+    [dBn, "que votaram branco ou", "nulo e agora escolheram"]];
+  fonte.forEach(([v, a1, a2], i) => {
+    const x = 70 + i * 320;
+    rr(ctx, x, y + 24, 300, 150, 22); ctx.fillStyle = "rgba(251,248,241,.07)"; ctx.fill();
+    tx(ctx, mi(v), x + 150, y + 90, 46, 900, MARFIM, "center");
+    tx(ctx, a1, x + 150, y + 128, 21, 800, "rgba(251,248,241,.7)", "center");
+    tx(ctx, a2, x + 150, y + 154, 21, 800, "rgba(251,248,241,.7)", "center");
+  });
+  y += 222;
+  tx(ctx, "QUEM FICOU COM ESSE CRESCIMENTO", CW / 2, y, 22, 900, "rgba(251,248,241,.7)", "center", 4);
+  const bx = 100, bw = CW - 200, by = y + 18, bh = 44, wl = bw * gL / tot;
+  ctx.save(); rr(ctx, bx, by, bw, bh, 22); ctx.clip();
+  ctx.fillStyle = gradTexto(ctx, bx, bx + wl, VERM_F, VERM); ctx.fillRect(bx, by, wl - 3, bh);
+  ctx.fillStyle = gradTexto(ctx, bx + wl, bx + bw, AZUL, AZUL_F); ctx.fillRect(bx + wl + 3, by, bw - wl - 3, bh);
+  ctx.restore();
+  tx(ctx, nPt + " " + n1(100 * gL / tot) + "%", bx + 24, by + 32, 28, 900, "#fff");
+  tx(ctx, n1(100 * gF / tot) + "% " + nPl, bx + bw - 24, by + 32, 28, 900, "#fff", "right");
+  // regiões: a virada do saldo
+  y += 120;
+  tx(ctx, "REGIÃO", 100, y, 21, 900, OURO, "left", 3);
+  tx(ctx, nPt, 470, y, 21, 900, OURO, "center", 2);
+  tx(ctx, nPl, 650, y, 21, 900, OURO, "center", 2);
+  tx(ctx, "SALDO P/ " + nPt.toUpperCase(), CW - 100, y, 21, 900, OURO, "right", 2);
+  const regs = [["sudeste", "Sudeste"], ["nordeste", "Nordeste"], ["sul", "Sul"], ["norte", "Norte"], ["centro-oeste", "Centro-Oeste"], ["exterior", "Exterior"]];
+  y += 8;
+  for (const [k, nome] of regs) {
+    const r = D[k]; y += 58;
+    rr(ctx, 70, y - 40, CW - 140, 52, 14); ctx.fillStyle = "rgba(251,248,241,.06)"; ctx.fill();
+    tx(ctx, nome, 100, y - 4, 28, 900, MARFIM);
+    tx(ctx, sg(100 * (r[7] / r[8] - r[1] / r[2])) + " pt", 470, y - 4, 26, 900, "#FFADA6", "center");
+    tx(ctx, sg(100 * (r[6] / r[8] - r[0] / r[2])) + " pt", 650, y - 4, 26, 900, "#A9CAFF", "center");
+    const dv = (r[7] - r[6]) - (r[1] - r[0]);
+    tx(ctx, (dv >= 0 ? "+" : "−") + mi(Math.abs(dv)), CW - 100, y - 4, 28, 900, dv >= 0 ? "#FFD27A" : "#A9CAFF", "right");
+  }
+  y += 52;
+  txCabe(ctx, `Abstenção ${n1(100 * b[4] / (b[4] + b[5]))}% → ${n1(100 * b[10] / (b[10] + b[11]))}% · brancos+nulos ${n1(100 * b[3] / b[5])}% → ${n1(100 * b[9] / b[11])}%`,
+    CW / 2, y, 24, 850, MARFIM, CW - 140, "center");
+  txCabe(ctx, `Saldo total: ${nPl} +${mi(b[0] - b[1])} no 1º turno → ${nPt} +${mi(b[7] - b[6])} no 2º`, CW / 2, y + 38, 24, 850, OURO, CW - 140, "center");
+  rodape(ctx, "Siga " + PERFIL, "Saldos do TSE: não dá para saber voto a voto quem migrou para quem");
+}
+
 function cardPais(ctx, d) {
   fundo(ctx, null, 340);
   marca(ctx, "EXTERIOR");
@@ -3389,6 +3461,7 @@ async function desenharCard(def) {
   else if (def.tipo === "regioes") cardRegioes(ctx, def);
   else if (def.tipo === "regiaoBR") cardRegiaoBR(ctx, def);
   else if (def.tipo === "acerto") cardAcerto(ctx, def);
+  else if (def.tipo === "origem") cardOrigem(ctx);
   else if (def.tipo === "regioesBR") cardRegioesBR(ctx, def);
   else if (def.tipo === "estado") cardEstado(ctx, def);
   return cv;
@@ -3519,6 +3592,17 @@ function textoCard(def) {
       + `\n✅ Apurado no TSE: ${nPl} ${n1(def.e.obsPl)}% × ${nPt} ${n1(100 - def.e.obsPl)}%`
       + `\n★ Projeção do algoritmo: ${nPl} ${n1(def.e.projPl)}% × ${nPt} ${n1(100 - def.e.projPl)}%`
       + extra(def) + (cid ? "\n\nCidades:\n" + cid : "") + fim;
+  }
+  if (def.tipo === "origem") {
+    const b = ORIGEM_1T2T.brasil, mi = (v) => (v / 1e6).toFixed(2).replace(".", ",") + " milhões";
+    return `📊 De onde veio a vitória de ${nPt}?\n\n${nPt}: +${mi(b[7] - b[1])} de votos em relação ao 1º turno (45,16% → 51,78% dos válidos)`
+      + `\n${nPl}: +${mi(b[6] - b[0])} (47,02% → 48,21%)`
+      + `\n\nOs votos a mais vieram de:\n• ${mi(b[2] - b[0] - b[1])} que votaram em outros candidatos no 1º turno`
+      + `\n• ${mi(b[4] - b[10])} que tinham faltado e foram votar (abstenção 21,08% → 19,21%)`
+      + `\n• ${mi(b[3] - b[9])} que votaram branco ou nulo e agora escolheram (4,76% → 3,23%)`
+      + `\n\n${nPt} ficou com 73,60% desse crescimento; ${nPl}, com 26,39%.`
+      + `\nA virada do saldo (6,65 milhões): Sudeste +2,85 mi, Nordeste +2,56 mi, Sul +0,47 mi, Norte +0,46 mi, Centro-Oeste +0,30 mi.`
+      + `\n\nAo vivo: https://${SITE}/ · ${PERFIL}`;
   }
   if (def.tipo === "acerto") {
     const lu = def.lado === "pt", nm = lu ? nPt : nPl, vv = (x) => lu ? 100 - x : x;
@@ -4905,6 +4989,7 @@ $("btAcerto").addEventListener("click", async () => {
   if (!histServidor) { histLido = 0; await carregarHistorico(); }
   const d = dadosAcerto(); if (d) abrirCard(d);
 });
+$("btOrigem").addEventListener("click", () => abrirCard({ tipo: "origem" }));
 $("btAcertoPT").addEventListener("click", async () => {
   if (!histServidor) { histLido = 0; await carregarHistorico(); }
   const d = dadosAcerto(); if (d) abrirCard(Object.assign(d, { lado: "pt" }));
@@ -5910,7 +5995,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=bf64a14fbb").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=94431012a9").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
