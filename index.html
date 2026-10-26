@@ -1612,6 +1612,7 @@ const DEMO = (() => {
  */
 /* 1º turno por UF: [abstenção, comparecimento, brancos+nulos] (TSE, eleição 6257). */
 const T1_UF = {"ac":[125412,488330,19264],"al":[503698,1938428,119572],"am":[564062,2234549,63786],"ap":[100426,476562,11704],"ba":[2259151,9053601,493310],"ce":[1086074,5910471,292657],"df":[426924,1831396,58588],"es":[639368,2352282,101204],"go":[1109003,3971587,143764],"ma":[1022772,4160343,149904],"mg":[3735098,12637274,661039],"ms":[483210,1541220,50942],"mt":[585668,2052133,58845],"pa":[1195893,5066504,203332],"pb":[564543,2683988,170241],"pe":[1312388,5911062,310045],"pi":[463875,2240883,94489],"pr":[1772200,6841457,256214],"rj":[2997846,9859802,490102],"rn":[488812,2171013,99115],"ro":[274813,991080,23021],"rr":[68749,332772,7227],"rs":[1819642,6702903,279857],"sc":[1086492,4648159,147262],"se":[301053,1439082,74886],"sp":[7690900,26431992,1549044],"to":[216827,965196,34749],"zz":[574345,341766,10884]};
+let ultimoObservado = null;
 let ultimoComp = null, ultimoT1 = null, ultimoTotais = null, ultimoBrasil = null, ultimaHoraTSE = "";
 const T1_BR = Object.values(T1_UF).reduce((a, x) => [a[0] + x[0], a[1] + x[1], a[2] + x[2]], [0, 0, 0]);
 /* Total nacional do TSE (o que o aplicativo mostra), quando está à frente da
@@ -1883,6 +1884,27 @@ function erf(x) { // Abramowitz-Stegun 7.1.26
   return x >= 0 ? y : -y;
 }
 
+/* Decisão matemática: quando a diferença entre os dois já é maior que TODOS
+ * os eleitores das urnas que faltam (mesmo que todos fossem votar e votassem
+ * no mesmo candidato), o resultado não muda mais. Não é projeção: é conta. */
+function decisaoMatematica() {
+  const b = ultimoBrasil, t = ultimoTotais;
+  let pl, pt, falta;
+  if (b && b.pl + b.pt > 0 && t && t.eleitorado > 0) {
+    pl = b.pl; pt = b.pt; falta = t.eleitorado - (b.comparecimento + b.abstencao);
+  }
+  if (t && t.eleitorado > 0) {
+    let vp = 0, vt = 0;
+    for (const o of Object.values(ultimoObservado || {})) { vp += o.pl; vt += o.pt; }
+    const f2 = t.eleitorado - (t.comparecimento + t.abstencao);
+    if (!(pl + pt >= vp + vt)) { pl = vp; pt = vt; falta = f2; }
+  }
+  if (!(pl + pt > 0) || !(falta >= 0)) return null;
+  const dif = Math.abs(pl - pt);
+  if (dif <= falta) return null;
+  return { lid: pl > pt ? nomes.pl : nomes.pt, dif, falta, pl, pt };
+}
+
 async function tick() {
   if (DEMO !== null) return tickDemo();
   // Aba em segundo plano não precisa de número novo: ninguém está vendo.
@@ -1894,6 +1916,7 @@ async function tick() {
     const { observado, fracoes, nomes: nms, falhas, totais, horaTSE,
             dispersao, brasil } = await tse.lerTudo(TURNO);
     ultimoBrasil = brasil || null;
+    ultimoObservado = observado;
     ultimaHoraTSE = (brasil && brasil.hora) || horaTSE || "";
     if (nms && nms.pl) {
       nomes = { pl: titulo(nms.pl), pt: titulo(nms.pt) };
@@ -2110,7 +2133,14 @@ function pinta(r, falhas, totais, horaTSE, observado, dispersao) {
   const pS = pctSecoesTSE(r);
   const C = textoChance(p, r.faixaPl && r.faixaPl[0], r.faixaPl && r.faixaPl[1], pS, MIN_CHANCE_BR, "", r.projecaoPl);
   if (pS < 1) txt = "Apuração ainda muito inicial — abaixo de 1% a projeção é instável.";
-  if (txt || C.tipo !== "chance") {
+  const DM = DEMO === null ? decisaoMatematica() : null;
+  const mi = (v) => v >= 1e6 ? n1(v / 1e6) + " milhões" : Math.round(v).toLocaleString("pt-BR");
+  if (DM) {
+    $("probabilidade").className = "chance-br";
+    $("probabilidade").innerHTML = "🏆 <b>" + esc(DM.lid) + " venceu — decidido matematicamente.</b><br>"
+      + "A diferença (" + mi(DM.dif) + (DM.dif >= 1e6 ? " de" : "") + " votos) é maior que todos os eleitores das urnas que faltam ("
+      + mi(DM.falta) + "): nenhum resultado possível muda o vencedor. A proclamação oficial é do TSE.";
+  } else if (txt || C.tipo !== "chance") {
     $("probabilidade").className = "";
     $("probabilidade").textContent = txt || C.txt;
   } else {
@@ -2785,7 +2815,9 @@ function cardMarco(ctx, c) {
   {
     const C = textoChance(c.ch, c.lo, c.hi, c.pct, MIN_CHANCE_BR, "", c.pr);
     const margem = C.tipo !== "chance";
-    const t = c.pct < 1 ? "Abaixo de 1% apurado: projeção ainda instável" : C.txt;
+    const DMc = DEMO === null && Date.now() - (c.t || 0) < 600000 ? decisaoMatematica() : null;
+    const t = DMc ? "🏆 " + DMc.lid.split(" ")[0].toUpperCase() + " VENCEU · DECIDIDO MATEMATICAMENTE"
+      : c.pct < 1 ? "Abaixo de 1% apurado: projeção ainda instável" : C.txt;
     if (t) {
       rr(ctx, 70, 1252, CW - 140, 64, 32); ctx.fillStyle = "rgba(242,181,68,.16)"; ctx.fill();
       ctx.lineWidth = 2.5; ctx.strokeStyle = "rgba(242,181,68,.75)"; ctx.stroke();
@@ -3393,7 +3425,9 @@ function textoCard(def) {
   };
   if (def.tipo === "marco" || def.tipo === "virada") {
     const C = textoChance(def.ch, def.lo, def.hi, def.pct, MIN_CHANCE_BR, "", def.pr);
-    const ch = def.pct < 1 ? "\n⚠️ Abaixo de 1% apurado a projeção ainda é instável"
+    const DMt = DEMO === null && Date.now() - (def.t || 0) < 600000 ? decisaoMatematica() : null;
+    const ch = DMt ? `\n🏆 ${DMt.lid} venceu — decidido matematicamente: a diferença de ${DMt.dif.toLocaleString("pt-BR")} votos é maior que todos os ${DMt.falta.toLocaleString("pt-BR")} eleitores das urnas que faltam`
+      : def.pct < 1 ? "\n⚠️ Abaixo de 1% apurado a projeção ainda é instável"
       : C.tipo === "chance" ? `\n🎯 ${C.txt}` : C.txt ? `\n⏳ ${C.txt}` : "";
     return `🗳️ Apuração 2º turno · ${n2(def.pct)}% das urnas apuradas`
       + `\n✅ Apurado no TSE: ${nPl} ${n1(def.of)}% × ${nPt} ${n1(100 - def.of)}%`
@@ -5427,7 +5461,9 @@ function atualizarFaixa(r, comecou) {
 
   $("contagem").hidden = true;   // começou a contar voto: o relógio sai
   faixa.className = "status vivo";
-  $("statusTitulo").textContent = "Ao vivo · apuração oficial do TSE";
+  const DMf = DEMO === null ? decisaoMatematica() : null;
+  $("statusTitulo").textContent = DMf ? "🏆 " + DMf.lid + " venceu · decidido matematicamente"
+    : "Ao vivo · apuração oficial do TSE";
   $("statusTexto").innerHTML =
     "<strong>" + n2(pctSecoesTSE(r)) + "% apurado.</strong> Votos oficiais do TSE, "
     + "com a projeção de onde a conta deve terminar.";
@@ -5781,7 +5817,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=124dbd4b0f").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=ce16051a49").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
