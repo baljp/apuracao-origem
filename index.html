@@ -2959,7 +2959,7 @@ function cardExterior(ctx, d) {
     y += 16;
     rr(ctx, 70, y - 54, CW - 140, 262, 26); ctx.fillStyle = "rgba(242,181,68,.14)"; ctx.fill();
     ctx.lineWidth = 3; ctx.strokeStyle = "rgba(242,181,68,.8)"; ctx.stroke();
-    tx(ctx, "★ PROJEÇÃO DO ALGORITMO · EXTERIOR", CW / 2, y, 26, 900, OURO, "center", 4);
+    tx(ctx, /^Resultado final/.test(d.proj[0]) ? "★ RESULTADO FINAL · EXTERIOR" : "★ PROJEÇÃO DO ALGORITMO · EXTERIOR", CW / 2, y, 26, 900, OURO, "center", 4);
     txCabe(ctx, d.proj[0].replace(/^Projeção só do exterior: /, ""), CW / 2, y + 72, 58, 900, MARFIM, CW - 180, "center");
     txCabe(ctx, d.proj[1], CW / 2, y + 128, 38, 900, OURO, CW - 180, "center");
     txCabe(ctx, "Só votos do exterior · não é o resultado do Brasil", CW / 2, y + 176, 25, 800,
@@ -4302,6 +4302,14 @@ function projetarExterior() {
  * abaixo dele: é a resposta para "como o exterior vai terminar?". */
 function placarProjExterior(pr, nPl, nPt) {
   if (!pr) return "";
+  if (pr.apuSec >= 99.99) {   // tudo apurado: não há o que projetar, só o vencedor
+    const venc = pr.pPl >= 50 ? nPl : nPt, pV = pr.pPl >= 50 ? pr.pPl : 100 - pr.pPl;
+    return `<div class="proj-placar">`
+      + `<div class="selo-proj"><span class="est">★</span><div><b>Resultado final · exterior</b>`
+      + `<span>100% das urnas do exterior apuradas</span></div></div>`
+      + `<div class="chance-ext"><b>${venc} venceu no exterior</b> com ${n1(pV)}% dos votos</div>`
+      + `<div class="so-ext">🌎 Vale só para o exterior — o resultado do Brasil é o do TSE</div></div>`;
+  }
   const ch = pr.pPl >= 50 ? pr.chPl : 1 - pr.chPl;
   const lider = pr.pPl >= 50 ? nPl : nPt;
   const chTxt = Math.min(99, Math.max(50, Math.round(100 * ch))) + "%";
@@ -4324,7 +4332,7 @@ function placarProjExterior(pr, nPl, nPt) {
 }
 
 function blocoProjExterior(pr, nPl, nPt) {
-  if (!pr) return "";
+  if (!pr || pr.apuSec >= 99.99) return "";
   const mil = (v) => Math.round(v).toLocaleString("pt-BR");
   const lider = pr.pPl >= 50 ? nPl : nPt, pL = pr.pPl >= 50 ? pr.pPl : 100 - pr.pPl;
   const ch = pr.pPl >= 50 ? pr.chPl : 1 - pr.chPl;
@@ -4598,6 +4606,7 @@ $("btExtCompartilhar").addEventListener("click", () => {
       const nPl = nomes.pl.split(" ")[0], nPt = nomes.pt.split(" ")[0];
       const lid = u.proj.pPl >= 50 ? nPl : nPt;
       const ch = u.proj.pPl >= 50 ? u.proj.chPl : 1 - u.proj.chPl;
+      if (u.proj.apuSec >= 99.99) return [`Resultado final do exterior: ${lid} venceu com ${n1(u.proj.pPl >= 50 ? u.proj.pPl : 100 - u.proj.pPl)}%`, "100% das urnas do exterior apuradas"];
       return [`Projeção só do exterior: ${nPl} ${n1(u.proj.pPl)}% × ${n1(100 - u.proj.pPl)}% ${nPt}`,
         textoChance(u.proj.chPl, u.proj.lo, u.proj.hi, u.proj.apuSec, MIN_CHANCE_EXT, "no exterior", u.proj.pPl).txt];
     })() : "",
@@ -6050,7 +6059,7 @@ async function calcularAcerto() {
 // TSE) e é o que torna a instalação possível.
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=dbe9bff4fc").then((reg) => {
+    navigator.serviceWorker.register("./sw.js?v=f048d83142").then((reg) => {
       // Procura versão nova ao abrir e de hora em hora. Uma aba deixada
       // aberta a noite toda recebe as correções sozinha.
       reg.update().catch(() => {});
